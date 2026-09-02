@@ -23,6 +23,7 @@ const Magic = "KNIT1"
 const (
 	OpInfo = "info"
 	OpRun  = "run"
+	OpDial = "dial" // open a raw TCP tunnel to Host, for knit proxy (KN-NET-040)
 )
 
 // Frame types. The server->client stream uses 1-3; the client->server stream
@@ -73,6 +74,8 @@ type Request struct {
 	// exposes both to the command as environment (see RankEnv).
 	Hosts []string `json:"hosts,omitempty"`
 	Rank  int      `json:"rank,omitempty"`
+	// Host is the "ip:port" a dial op tunnels to (knit proxy).
+	Host string `json:"host,omitempty"`
 }
 
 // Envelope is the single JSON line the server sends in reply. For op "info"

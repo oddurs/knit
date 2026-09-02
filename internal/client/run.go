@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/oddurs/knit/internal/discovery"
 	"github.com/oddurs/knit/internal/proto"
 	"github.com/oddurs/knit/internal/scheduler"
 	"github.com/oddurs/knit/internal/transport"
@@ -45,7 +46,14 @@ func Run(p Placement, cmd []string) int {
 		return 1
 	}
 
-	peers, _ := probePeers(key, false)
+	// Probe peers, keeping the info connections open: the winner's is reused
+	// for the run, saving a second dial and TLS handshake (KN-XPORT-050).
+	peers, sessions := probeForRun(key)
+	defer func() {
+		for _, s := range sessions {
+			s.Close()
+		}
+	}()
 	cands := append([]scheduler.Candidate{localCandidate()}, peers...)
 	cands, why := scheduler.Filter(cands, p.MemGB, p.Arch)
 	if why != "" {
@@ -67,7 +75,54 @@ func Run(p Placement, cmd []string) int {
 	if best.Local {
 		return runLocal(cmd) // already runs in the local working directory
 	}
+	// Reuse the winner's open probe connection if we have it. An agent too old
+	// to accept a second op (v0.4.0) closes after info, so a failed reuse falls
+	// back to a fresh dial rather than failing the run.
+	if sess, ok := sessions[best.HostPortOrEmpty()]; ok {
+		delete(sessions, best.HostPortOrEmpty()) // streamOver owns it now
+		if err := sess.Do(proto.Request{Op: proto.OpRun, Cmd: cmd, Dir: p.Dir, Sync: p.Sync}); err == nil {
+			return streamOver(sess, best.Name, p.Dir, p.Sync)
+		}
+		sess.Close()
+	}
 	return runRemote(best, key, cmd, p.Dir, p.Sync)
+}
+
+// probeForRun probes every peer and keeps each reachable one's authenticated
+// info connection open, returning the candidates and their sessions keyed by
+// dial target. The caller reuses the winner's session and closes the rest.
+func probeForRun(key []byte) ([]scheduler.Candidate, map[string]*transport.Session) {
+	peers := gatherPeers(false)
+	type result struct {
+		cand *scheduler.Candidate
+		sess *transport.Session
+		key  string
+	}
+	ch := make(chan result, len(peers))
+	budget := probeTimeout()
+	for _, p := range peers {
+		go func(p peer) {
+			sess, err := transport.Open(p.HostPort(), key, proto.Request{Op: proto.OpInfo}, budget)
+			if err != nil {
+				ch <- result{}
+				return
+			}
+			info := sess.Reply
+			label, mbps := discovery.Link(p.Addr)
+			info.Link = label
+			c := scheduler.Candidate{Name: info.Name, Addr: p.Addr, Port: p.Port, Info: info, LinkMbps: mbps}
+			ch <- result{cand: &c, sess: sess, key: c.HostPortOrEmpty()}
+		}(p)
+	}
+	var cands []scheduler.Candidate
+	sessions := map[string]*transport.Session{}
+	for range peers {
+		if r := <-ch; r.cand != nil {
+			cands = append(cands, *r.cand)
+			sessions[r.key] = r.sess
+		}
+	}
+	return cands, sessions
 }
 
 // constraintNote explains, when --on misses, that a constraint may be why.
@@ -105,9 +160,18 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string, dirMode, sync bo
 	if err != nil {
 		return reportOpenError(c.Name, err)
 	}
+	return streamOver(sess, c.Name, dirMode, sync)
+}
+
+// streamOver runs the stdio-streaming phase on an open, run-accepted session:
+// the working-directory upload, stdin and signal forwarding, and the frame
+// read loop. The command's exit code becomes this process's exit code. It owns
+// the session and closes it. Whether the session was freshly dialed or reused
+// from an info probe, the streaming is identical.
+func streamOver(sess *transport.Session, name string, dirMode, sync bool) int {
 	defer sess.Close()
 
-	fmt.Fprintf(os.Stderr, "%s\n", dim("knit → "+c.Name))
+	fmt.Fprintf(os.Stderr, "%s\n", dim("knit → "+name))
 
 	fw := proto.NewFrameWriter(sess.Conn)
 

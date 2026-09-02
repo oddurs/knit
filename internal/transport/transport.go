@@ -36,6 +36,30 @@ type Session struct {
 // Close releases the connection.
 func (s *Session) Close() error { return s.Conn.Close() }
 
+// Do sends a follow-up request on an already-authenticated session and reads
+// the reply, reusing the connection an info probe left open (KN-XPORT-050).
+// The connection is already proven, so no nonce or server-proof step repeats.
+func (s *Session) Do(req proto.Request) error {
+	req.V = proto.Version
+	line, _ := json.Marshal(req)
+	if _, err := s.Conn.Write(append(line, '\n')); err != nil {
+		return err
+	}
+	replyLine, err := s.R.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("reading reply: %w", err)
+	}
+	var reply proto.Envelope
+	if err := json.Unmarshal([]byte(replyLine), &reply); err != nil {
+		return fmt.Errorf("bad reply: %w", err)
+	}
+	if !reply.OK {
+		return &ReplyError{Code: reply.Code, Msg: reply.Error}
+	}
+	s.Reply = reply
+	return nil
+}
+
 // Dial opens a TCP connection with Nagle disabled.
 func Dial(addr string, timeout time.Duration) (net.Conn, error) {
 	conn, err := net.DialTimeout("tcp", addr, timeout)

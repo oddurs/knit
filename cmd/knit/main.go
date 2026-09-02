@@ -35,6 +35,9 @@ Usage:
   knit key [--rotate]      print this machine's cluster key
                            (--rotate: replace it and say who must re-join)
   knit join KEY            join the fabric that key belongs to
+  knit proxy [--on NAME] [--port N]
+                           tunnel this machine's network through a peer
+                           (local SOCKS5, default port 1080)
 
   knit --version           print version
 
@@ -103,6 +106,10 @@ func run(args []string) int {
 		}
 		fmt.Println(k)
 		return 0
+	case "proxy":
+		rest, peers := extractPeers(args[1:])
+		client.AddExplicitPeers(peers)
+		return cmdProxy(rest)
 	case "join":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "knit: join needs a key (get it with `knit key` on a trusted machine)")
@@ -161,6 +168,38 @@ func cmdRun(args []string) int {
 	}
 	fmt.Fprintln(os.Stderr, "knit: run needs `-- CMD`")
 	return client.ExitUsage
+}
+
+// cmdProxy parses `proxy [--on NAME] [--port N]`.
+func cmdProxy(args []string) int {
+	on, port := "", 1080
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--on":
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "knit: --on needs a machine name")
+				return client.ExitUsage
+			}
+			on = args[i+1]
+			i++
+		case "--port":
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "knit: --port needs a number")
+				return client.ExitUsage
+			}
+			n, err := strconv.Atoi(args[i+1])
+			if err != nil || n <= 0 || n > 65535 {
+				fmt.Fprintf(os.Stderr, "knit: --port needs a port number (got %q)\n", args[i+1])
+				return client.ExitUsage
+			}
+			port = n
+			i++
+		default:
+			fmt.Fprintf(os.Stderr, "knit: unexpected argument %q\n", args[i])
+			return client.ExitUsage
+		}
+	}
+	return client.Proxy(on, port)
 }
 
 // extractPeers pulls repeated `--peer host[:port]` flags from the arguments before

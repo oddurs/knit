@@ -1,9 +1,6 @@
 package proto
 
-import (
-	"os/exec"
-	"syscall"
-)
+import "os/exec"
 
 // ExitStatus maps an exec.Cmd Run/Wait result to the code a local shell would
 // report: the process's own status, 128+signal when a signal ended it, or 127
@@ -17,8 +14,8 @@ func ExitStatus(err error) int {
 	if !ok {
 		return 127
 	}
-	if ws, ok := ee.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
-		return 128 + int(ws.Signal())
+	if code, ok := signalExit(ee); ok {
+		return code
 	}
 	return ee.ExitCode()
 }

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -153,5 +154,80 @@ func TestRankEnvReachesCommand(t *testing.T) {
 	}
 	if files, _ := filepath.Glob(filepath.Join(os.Getenv("KNIT_HOME"), "hostfile-*.json")); len(files) != 0 {
 		t.Fatalf("hostfile not cleaned up: %v", files)
+	}
+}
+
+// TestConnectionReuse: an info op followed by a run on the same connection is
+// served (KN-XPORT-050), and the run's output and exit code are correct.
+func TestConnectionReuse(t *testing.T) {
+	addr := serveOne(t, testKey())
+	sess, err := transport.Open(addr, testKey(), proto.Request{Op: proto.OpInfo}, 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sess.Close()
+	if sess.Reply.CPUs < 1 {
+		t.Fatalf("info reply not received: %+v", sess.Reply)
+	}
+	// Reuse the same connection for a run.
+	if err := sess.Do(proto.Request{Op: proto.OpRun, Cmd: []string{"sh", "-c", "printf REUSED; exit 4"}}); err != nil {
+		t.Fatal(err)
+	}
+	_ = proto.NewFrameWriter(sess.Conn).Write(proto.FrameStdinEOF, nil)
+	var out strings.Builder
+	code := -1
+	_ = sess.Conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	for code < 0 {
+		typ, p, err := proto.ReadFrame(sess.R)
+		if err != nil {
+			t.Fatalf("read: %v", err)
+		}
+		switch typ {
+		case proto.FrameStdout:
+			out.Write(p)
+		case proto.FrameExit:
+			code = proto.ExitCode(p)
+		}
+	}
+	if out.String() != "REUSED" || code != 4 {
+		t.Fatalf("reused run wrong: out=%q code=%d", out.String(), code)
+	}
+}
+
+// TestDialTunnel: a dial op splices raw bytes to a target the agent can reach,
+// which is what knit proxy rides on.
+func TestDialTunnel(t *testing.T) {
+	// An echo server stands in for "the network the peer can reach".
+	echo, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer echo.Close()
+	go func() {
+		for {
+			c, err := echo.Accept()
+			if err != nil {
+				return
+			}
+			go func() { defer c.Close(); io.Copy(c, c) }()
+		}
+	}()
+
+	addr := serveOne(t, testKey())
+	sess, err := transport.Open(addr, testKey(), proto.Request{Op: proto.OpDial, Host: echo.Addr().String()}, 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sess.Close()
+	_ = sess.Conn.SetDeadline(time.Now().Add(5 * time.Second))
+	if _, err := sess.Conn.Write([]byte("ping\n")); err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 5)
+	if _, err := io.ReadFull(sess.Conn, buf); err != nil {
+		t.Fatal(err)
+	}
+	if string(buf) != "ping\n" {
+		t.Fatalf("tunnel echoed %q", buf)
 	}
 }

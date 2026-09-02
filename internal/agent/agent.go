@@ -1,3 +1,5 @@
+//go:build !windows
+
 // Package agent is the server half of knit: it advertises this machine over
 // mDNS, wraps every connection in TLS 1.3, authenticates it with an HMAC over
 // a fresh nonce bound to that connection, proves its own key back, and serves
@@ -183,16 +185,49 @@ func handleConn(raw net.Conn, cfg *tls.Config, loadKey func() []byte) {
 	_ = conn.SetDeadline(time.Time{})
 	proof := keys.ServerProof(key, nonce, cb)
 
-	switch req.Op {
-	case proto.OpInfo:
-		env := sysinfo.Local()
-		env.Proof = proof
-		writeEnvelope(conn, env)
-	case proto.OpRun:
-		handleRun(conn, br, req, proof)
-	default:
-		writeEnvelope(conn, proto.Envelope{Code: proto.CodeInternal, Error: "unknown op"})
+	// The connection is authenticated once. An info op may be followed by a
+	// run on the same connection, so a `knit run` reuses the probe it just did
+	// (KN-XPORT-050); run and dial each consume the connection and return.
+	for {
+		switch req.Op {
+		case proto.OpInfo:
+			env := sysinfo.Local()
+			env.Proof = proof
+			writeEnvelope(conn, env)
+			next, ok := readFollowup(conn, br)
+			if !ok {
+				return
+			}
+			req = next
+		case proto.OpRun:
+			handleRun(conn, br, req, proof)
+			return
+		case proto.OpDial:
+			handleDial(conn, req, proof)
+			return
+		default:
+			writeEnvelope(conn, proto.Envelope{Code: proto.CodeInternal, Error: "unknown op"})
+			return
+		}
 	}
+}
+
+// reuseIdle bounds how long an authenticated connection waits for a follow-up
+// op after an info reply before closing, so a held probe never leaks.
+const reuseIdle = 10 * time.Second
+
+func readFollowup(conn net.Conn, br *bufio.Reader) (proto.Request, bool) {
+	_ = conn.SetReadDeadline(time.Now().Add(reuseIdle))
+	line, err := br.ReadString('\n')
+	_ = conn.SetReadDeadline(time.Time{})
+	if err != nil {
+		return proto.Request{}, false
+	}
+	var req proto.Request
+	if json.Unmarshal([]byte(line), &req) != nil {
+		return proto.Request{}, false
+	}
+	return req, true
 }
 
 func writeEnvelope(w io.Writer, e proto.Envelope) {
