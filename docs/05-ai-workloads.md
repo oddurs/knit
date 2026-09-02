@@ -46,7 +46,7 @@ host list. `knit each` sets exactly that on every process it launches
 ([`KN-AI-030`](../roadmaps/milestones/m3-v0.3-ai-native.md)): `KNIT_RANK`,
 `KNIT_NNODES`, `KNIT_HOSTS`, `KNIT_MASTER`, plus `MLX_RANK` and an
 `MLX_HOSTFILE` it writes for the launch. This machine is rank 0; peers follow in
-order of spare capacity. No eighth command, no hostfile by hand:
+order of spare capacity. No extra command, no hostfile by hand:
 
 ```sh
 knit each -- python -m mlx_lm.generate --model ... # MLX ring backend, as is

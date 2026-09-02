@@ -38,7 +38,7 @@ jobs:
           check-latest: true
       - name: cross-compile all targets
         run: |
-          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64; do
+          for target in darwin/arm64 darwin/amd64 linux/arm64 linux/amd64 windows/amd64 windows/arm64; do
             GOOS=${target%/*} GOARCH=${target#*/} CGO_ENABLED=0 \
               go build -o /dev/null ./cmd/knit
           done

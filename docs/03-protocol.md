@@ -53,7 +53,10 @@ server → client:   {"ok":true,"proof":"<hex>"}\n        (or {"ok":false,"error
   error and reports "an older knit"; unknown JSON fields are ignored in both
   directions, so minor additions never break peers within a generation.
 
-Ops: `info` and `run`.
+Ops: `info`, `run`, and `dial`. A connection is authenticated once; an `info`
+probe may be followed by a `run` on the same connection, so `knit run` reuses
+the probe it just did instead of dialing again ([`KN-XPORT-050`](../roadmaps/registry.toml)).
+An agent too old to accept the follow-up simply closes, and the client dials afresh.
 
 ## op = info
 
@@ -132,6 +135,16 @@ frames as above ([`KN-EXEC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)).
 is the first version boundary that does not interoperate with the previous
 one, and each side says so. A future version would add `winsize` (type 13)
 and a TTY mode for interactive programs.
+
+## op = dial
+
+`knit proxy` tunnels raw TCP through a peer. After a handshake for
+`op:"dial","host":"ip:port"`, the agent connects to that address, replies
+`{"ok":true,"proof":"..."}`, and then splices bytes in both directions over the
+same TLS connection — no framing, just an encrypted, authenticated pipe. Only a
+key holder reaches it, so it is arbitrary outbound connection on the peer's
+behalf, the same trust `run` already grants
+([`KN-NET-040`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md)).
 
 ## Security summary
 

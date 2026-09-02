@@ -23,9 +23,9 @@ No IPs, no config files, no accounts, no server. One static binary.
 
 **Simple. Fast. Seamless.** In that priority order.
 
-- **Simple** is a constraint on us: one binary, one dependency, seven commands,
+- **Simple** is a constraint on us: one binary, one dependency, eight commands,
   a protocol that fits on a page. If a feature cannot be added without a config
-  file or an eighth command, it waits or dies.
+  file or a ninth command, it waits or dies.
 - **Fast** is a promise to the machine: the streaming path runs at the speed of
   the cable, and knit's own overhead on the hot path is measured in
   microseconds, not milliseconds. See the [performance budget](10-performance.md).

@@ -13,7 +13,7 @@ if it ran here.
 minutes, most of which is copying a key.
 
 **Looking for a flag?** The [command reference](reference/commands.md) has all
-seven commands. That is the whole surface; there is no configuration file.
+eight commands. That is the whole surface; there is no configuration file.
 
 **Running models?** [AI workloads](guides/ai-workloads.md) has copy-paste
 launches for MLX distributed, torchrun, and llama.cpp RPC.

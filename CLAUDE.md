@@ -12,9 +12,10 @@ behavior — the design is deliberate and documented.
 
 ## North star (in priority order)
 
-1. **Simple** — one binary, one runtime dependency (mDNS), seven commands, a wire
-   protocol that fits on a page. If a feature needs a config file or an eighth
-   command, it waits or dies.
+1. **Simple** — one binary, one runtime dependency (mDNS), eight commands, a wire
+   protocol that fits on a page. If a feature needs a config file or a ninth
+   command, it waits or dies. (`knit proxy` was the deliberate eighth, admitted
+   in v0.4.1 once TLS made a tunnel safe.)
 2. **Fast** — the streaming path is line-rate; the hot path allocates nothing per
    frame (`go test -bench . -benchmem ./internal/proto` must stay 0 allocs/op).
 3. **Seamless** — exit codes, stdin EOF, and pipes behave byte-for-byte as local.

@@ -57,4 +57,4 @@ knit up -d
 On the second machine, `knit join` the key the first one prints, and you are
 done. [Two machines in two minutes](/knit/docs/getting-started/quickstart/)
 walks through it; [Commands](/knit/docs/reference/commands/) is the whole
-surface, seven of them.
+surface, eight of them.

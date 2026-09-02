@@ -4,7 +4,7 @@ order: 1
 ---
 # Commands
 
-Seven commands. There is no configuration file and no eighth command.
+Eight commands. There is no configuration file.
 
 ## knit up [-d | --forever]
 
@@ -58,6 +58,14 @@ Print this machine's cluster key as 64 hex characters, creating it if needed.
 `--rotate` replaces it with a fresh key atomically, prints the new key, and
 names the machines that were reachable under the old one and must now
 `knit join` it. The local agent uses the new key from its next connection.
+
+## knit proxy [--on NAME] [--port N]
+
+Open a local SOCKS5 proxy (default port 1080, `127.0.0.1` only) that tunnels
+every connection through a peer's agent, so this machine reaches the network the
+peer can. With one other machine reachable it uses that one; with several, name
+one with `--on`. Each tunnel is TLS-encrypted and key-authenticated, the same as
+`run`. It runs until you stop it. See [Route through another machine](../guides/proxy.md).
 
 ## knit join KEY
 

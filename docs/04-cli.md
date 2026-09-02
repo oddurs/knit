@@ -1,6 +1,6 @@
 # CLI surface
 
-Seven commands. If it needs an eighth, the design is drifting.
+Eight commands. If it needs a ninth, the design is drifting.
 
 ```
 knit up [-d|--forever]  start sharing this machine (-d: background;
@@ -12,7 +12,16 @@ knit run [--on NAME] [--mem GB] [--arch ARCH] [--dir] [--sync] -- CMD [ARGS...]
 knit each -- CMD        run a command on every machine at once
 knit key [--rotate]     print this machine's cluster key (--rotate: replace it)
 knit join KEY           join the fabric that key belongs to
+knit proxy [--on NAME] [--port N]
+                        tunnel this machine's network through a peer (SOCKS5)
 ```
+
+`knit proxy` opens a local SOCKS5 listener (default port 1080) that sends every
+connection through a peer's agent, so a machine reaches the network another can
+— a laptop routes through a wired peer, a Thunderbolt-only machine reaches the
+world through its neighbor. It reuses the `run` transport: TLS, key-authenticated,
+one `dial` op per connection. It waited for encryption (v0.4) because a tunnel
+carries traffic too sensitive for a plaintext link.
 
 `--dir` sends the working directory to the target and runs the command there;
 `--sync` also mirrors changed files back (implies `--dir`). `--mem GB` and

@@ -27,6 +27,14 @@ sudo install knit /usr/local/bin/knit
 Replace `arm64` with `amd64` on x86 machines, and the version with the latest
 one listed. The archive contains the binary, the license, and a README.
 
+## Windows
+
+The client runs on Windows (`knit run`, `gauge`, `each`, `key`, `join`, `proxy`);
+the agent does not, so a Windows machine uses the fabric but does not offer its
+own capacity. Download `knit_<version>_windows_amd64.zip` (or `arm64`) from the
+[releases page](https://github.com/oddurs/knit/releases) and put `knit.exe` on
+your `PATH`.
+
 ## From source
 
 With Go 1.26 or newer:
