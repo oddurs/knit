@@ -3,16 +3,15 @@
 > Generated from `registry.toml` by `roadmaps/tools/roadmap.py render`.
 > Do not hand-edit — change the registry and re-render.
 
-**36 items** across **4 milestones** plus backlog · **23 done**
+**36 items** across **4 milestones** plus backlog · **25 done**
 
 ## Rollup
 
 | Status | Count |   | Priority | Count |
 | ------ | ----: | - | -------- | ----: |
 | ready | 1 |   | p0 | 15 |
-| review | 2 |   | p1 | 14 |
-| done | 23 |   | p2 | 7 |
-| planned | 7 |   |  |  |
+| done | 25 |   | p1 | 14 |
+| planned | 7 |   | p2 | 7 |
 | blocked | 1 |   |  |  |
 | deferred | 2 |   |  |  |
 
@@ -52,7 +51,7 @@
 *Signals, explicit peers, working-dir sync, and a real install path.*
 
 ```
-████████████████░░░░░░░░  4/6
+████████████████████████  6/6
 ```
 
 | # | ID | Item | Status | Pri | Sz | Depends |
@@ -61,8 +60,8 @@
 | 11 | `KN-EXEC-030` | run --dir / --sync: rsync-style working-directory sync | done | p1 | L | KN-EXEC-001 |
 | 22 | `KN-CLIENT-020` | ls marks the interface/link a peer was found on | done | p2 | S | KN-CLIENT-001, KN-DISC-001 |
 | 26 | `KN-DISC-020` | --peer host:port and KNIT_PEERS (works over Tailscale) | done | p1 | S | KN-XPORT-001 |
-| 30 | `KN-OPS-020` | goreleaser release pipeline | review | p1 | S | KN-OPS-001 |
-| 31 | `KN-OPS-021` | Homebrew tap: brew install oddurs/tap/knit | review | p1 | S | KN-OPS-020 |
+| 30 | `KN-OPS-020` | goreleaser release pipeline | done | p1 | S | KN-OPS-001 |
+| 31 | `KN-OPS-021` | Homebrew tap: brew install oddurs/tap/knit | done | p1 | S | KN-OPS-020 |
 
 ## m3 · v0.3 — AI-native scheduling
 

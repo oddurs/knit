@@ -10,7 +10,7 @@ tagged release, once over a **Thunderbolt/USB4 bridge** and once over **Wi-Fi**.
 On both machines (A and B):
 
 ```sh
-go build -o knit ./cmd/knit   # or: brew install oddurs/tap/knit (v0.2+)
+go build -o knit ./cmd/knit   # or: brew install oddurs/tap/knit
 ./knit up -d
 ```
 
@@ -49,3 +49,26 @@ version (`./knit --version`) and both machines' OS/arch.
 All ten rows pass on both links. Step 8 (no orphaned process after Ctrl-C) and
 step 5 (exit code fidelity) are the ones most likely to regress; check them
 deliberately.
+
+## Last run
+
+**2026-09-02 · knit v0.2.0 (pre-release build) · cross-host over a virtual bridge**
+
+A = macOS 26 / arm64 (15 cpus), B = Ubuntu / arm64 VM (14 cpus, OrbStack),
+reached over the host's bridge interface. B was discovered by mDNS with no
+flags; `--peer 192.168.139.118` (default port 5648) was also exercised.
+
+| # | Result |
+| - | ------ |
+| 1–2 | both machines listed; JSON has `"self":true`; B marked `lan` |
+| 3–5 | `uname` from B, stdin `hi` echoed, `exit 7` relayed as 7 |
+| 6 | 1 GiB stdin in 0.81 s (~1.3 GB/s, bridge-bound, not a cable number) |
+| 7 | `knit run -- hostname` placed on B (lower load per core) |
+| 8 | Ctrl-C returned 130 promptly; `pgrep sleep` on B empty |
+| 9 | one prefixed line per machine including A; exit 0 |
+| 10 | 300 MB `cat` back to A byte-identical (sha256 match) |
+| + | `--sync` mirrored a file B wrote back into A's working directory |
+
+Outstanding: the same checklist over a physical Thunderbolt bridge and Wi-Fi,
+which is what produces the cable throughput figure for
+[10-performance.md](10-performance.md).

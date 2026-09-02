@@ -18,7 +18,7 @@ goal = "Two machines, one cable or LAN: run / each / ls working end to end, fast
 id = "m2"
 version = "v0.2"
 name = "trustworthy under real use"
-status = "planned"
+status = "done"
 goal = "Signals, explicit peers, working-dir sync, and a real install path."
 
 [[milestone]]
@@ -355,7 +355,7 @@ accept = [
   "records observed streaming throughput on the cable for the performance doc",
   "run before every tagged release",
 ]
-notes = "Checklist committed at docs/manual-test.md; execution needs a second physical machine (Thunderbolt + Wi-Fi)."
+notes = "Checklist at docs/manual-test.md. Run 2026-09-02 cross-host (macOS arm64 <-> Ubuntu arm64 VM over a virtual bridge, results recorded there): all ten rows pass. Still open: the same run over a physical Thunderbolt bridge and Wi-Fi, which needs a second physical machine and yields the cable throughput number."
 
 [[item]]
 id = "KN-DOC-001"
@@ -442,7 +442,7 @@ id = "KN-OPS-020"
 title = "goreleaser release pipeline"
 area = "OPS"
 milestone = "m2"
-status = "review"
+status = "done"
 priority = "p1"
 size = "S"
 depends = ["KN-OPS-001"]
@@ -457,7 +457,7 @@ id = "KN-OPS-021"
 title = "Homebrew tap: brew install oddurs/tap/knit"
 area = "OPS"
 milestone = "m2"
-status = "review"
+status = "done"
 priority = "p1"
 size = "S"
 depends = ["KN-OPS-020"]
