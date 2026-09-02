@@ -28,6 +28,10 @@ knit keeps three words from knitting, and each is exact:
 These aren't just flavor: `gauge` is the capacity the scheduler actually reads,
 and a loop is exactly one machine. Everything else uses plain words.
 
+The `LINK` column is a best-effort guess from the peer's address — a link-local
+address is almost always a Thunderbolt/USB4 bridge (`thunderbolt`), a private
+address is a `lan`. True per-interface link speed arrives in v0.3.
+
 ## UX rules
 
 - **Silence is the default.** `knit run` writes one dim line to stderr —
@@ -97,10 +101,10 @@ knit join <key>               # on machine B
 
 # See the fabric
 knit ls
-#  NAME     ADDR            OS/ARCH        CPUS  MEM     LOAD   LINK
-#  studio   169.254.87.3    darwin/arm64   24    128.0G  0.31   thunderbolt
-#  mini     192.168.1.40    darwin/arm64   10    32.0G   1.85   wifi
-#  here     —               darwin/arm64   8     24.0G   4.02   (this machine)
+#  NAME     ADDR            OS/ARCH        CPUS  MEM     LOAD  LINK
+#  studio   169.254.87.3    darwin/arm64   24    128.0G  0.31  thunderbolt
+#  mini     192.168.1.40    darwin/arm64   10    32.0G   1.85  lan
+#  here     —               darwin/arm64   8     24.0G   4.02  (this machine)
 
 # Offload transparently
 knit run -- ffmpeg -i in.mov -c:v libx264 out.mp4

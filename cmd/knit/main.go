@@ -30,7 +30,8 @@ Usage:
 
   knit --version           print version
 
-Each machine is a loop; together they are the fabric.
+Add machines mDNS cannot see with --peer host:port (or KNIT_PEERS), e.g. over
+Tailscale. Each machine is a loop; together they are the fabric.
 `
 
 func main() { os.Exit(run(os.Args[1:])) }
@@ -61,11 +62,17 @@ func run(args []string) int {
 		}
 		return 0
 	case "gauge", "ls": // ls kept as an alias for muscle memory
-		return client.Gauge(hasFlag(args[1:], "--json"))
+		rest, peers := extractPeers(args[1:])
+		client.AddExplicitPeers(peers)
+		return client.Gauge(hasFlag(rest, "--json"))
 	case "run":
-		return cmdRun(args[1:])
+		rest, peers := extractPeers(args[1:])
+		client.AddExplicitPeers(peers)
+		return cmdRun(rest)
 	case "each":
-		cmd, ok := afterDashDash(args[1:])
+		rest, peers := extractPeers(args[1:])
+		client.AddExplicitPeers(peers)
+		cmd, ok := afterDashDash(rest)
 		if !ok {
 			fmt.Fprintln(os.Stderr, "knit: each needs `-- CMD`")
 			return client.ExitUsage
@@ -118,6 +125,30 @@ func cmdRun(args []string) int {
 	}
 	fmt.Fprintln(os.Stderr, "knit: run needs `-- CMD`")
 	return client.ExitUsage
+}
+
+// extractPeers pulls repeated `--peer host:port` flags from the arguments before
+// a `--` separator, returning the remaining args and the collected peers.
+func extractPeers(args []string) (rest []string, peers []string) {
+	i := 0
+	for i < len(args) {
+		if args[i] == "--" {
+			rest = append(rest, args[i:]...)
+			break
+		}
+		if args[i] == "--peer" {
+			if i+1 < len(args) {
+				peers = append(peers, args[i+1])
+				i += 2
+				continue
+			}
+			i++
+			continue
+		}
+		rest = append(rest, args[i])
+		i++
+	}
+	return rest, peers
 }
 
 func afterDashDash(args []string) ([]string, bool) {

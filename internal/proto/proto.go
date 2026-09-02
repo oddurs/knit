@@ -69,8 +69,11 @@ type Envelope struct {
 	Accel     string  `json:"accel,omitempty"`
 	GPU       string  `json:"gpu,omitempty"`
 
-	// Self marks the local machine in `ls` output; never sent on the wire.
+	// Self marks the local machine in gauge output; never sent on the wire.
 	Self bool `json:"self,omitempty"`
+	// Link is the client's guess at how a peer is reached (thunderbolt/lan/...);
+	// derived from the peer address, never sent by the agent.
+	Link string `json:"link,omitempty"`
 }
 
 // Score is load per core: lower means more spare capacity. A machine that
