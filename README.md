@@ -30,7 +30,7 @@ RPC, exo) run on top with one command instead of a page of setup.
 # From source (Go 1.26+)
 go install github.com/oddurs/knit/cmd/knit@latest
 
-# Homebrew (coming with v0.2)
+# Homebrew (once the tap is published)
 # brew install oddurs/tap/knit
 ```
 

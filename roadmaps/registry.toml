@@ -442,7 +442,7 @@ id = "KN-OPS-020"
 title = "goreleaser release pipeline"
 area = "OPS"
 milestone = "m2"
-status = "planned"
+status = "review"
 priority = "p1"
 size = "S"
 depends = ["KN-OPS-001"]
@@ -454,17 +454,17 @@ accept = [
 
 [[item]]
 id = "KN-OPS-021"
-title = "Homebrew tap: brew install knit/tap/knit"
+title = "Homebrew tap: brew install oddurs/tap/knit"
 area = "OPS"
 milestone = "m2"
-status = "planned"
+status = "review"
 priority = "p1"
 size = "S"
 depends = ["KN-OPS-020"]
 spec = "docs/09-build-test-release.md"
 accept = [
   "knit Homebrew tap formula pointing at releases",
-  "brew install knit/tap/knit documented as the headline install path",
+  "brew install oddurs/tap/knit documented as the headline install path",
 ]
 
 # ──────────────────────────────── m3 items ────────────────────────────────

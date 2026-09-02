@@ -10,8 +10,9 @@
 | Status | Count |   | Priority | Count |
 | ------ | ----: | - | -------- | ----: |
 | ready | 1 |   | p0 | 15 |
-| done | 21 |   | p1 | 14 |
-| planned | 11 |   | p2 | 7 |
+| review | 2 |   | p1 | 14 |
+| done | 21 |   | p2 | 7 |
+| planned | 9 |   |  |  |
 | blocked | 1 |   |  |  |
 | deferred | 2 |   |  |  |
 
@@ -60,8 +61,8 @@
 | 11 | `KN-EXEC-030` | run --dir / --sync: rsync-style working-directory sync | planned | p1 | L | KN-EXEC-001 |
 | 22 | `KN-CLIENT-020` | ls marks the interface/link a peer was found on | done | p2 | S | KN-CLIENT-001, KN-DISC-001 |
 | 26 | `KN-DISC-020` | --peer host:port and KNIT_PEERS (works over Tailscale) | done | p1 | S | KN-XPORT-001 |
-| 30 | `KN-OPS-020` | goreleaser release pipeline | planned | p1 | S | KN-OPS-001 |
-| 31 | `KN-OPS-021` | Homebrew tap: brew install knit/tap/knit | planned | p1 | S | KN-OPS-020 |
+| 30 | `KN-OPS-020` | goreleaser release pipeline | review | p1 | S | KN-OPS-001 |
+| 31 | `KN-OPS-021` | Homebrew tap: brew install oddurs/tap/knit | review | p1 | S | KN-OPS-020 |
 
 ## m3 · v0.3 — AI-native scheduling
 
