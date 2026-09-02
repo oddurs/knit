@@ -132,11 +132,13 @@ This is what makes `knit run` pipe-safe and script-safe. The end-to-end latency
 and throughput targets for this path are the subject of
 [10-performance.md](10-performance.md).
 
-Not yet carried across (roadmap): working-directory + file sync
-([`KN-EXEC-030`](../roadmaps/milestones/m2-v0.2-real-use.md)), TTY allocation for
-interactive programs, and full signal forwarding. v0.1 already forwards SIGINT so
-Ctrl-C on the client reaches the remote process and leaves no orphan
-([`KN-EXEC-010`](../roadmaps/milestones/m1-v0.1-fabric.md)).
+`knit run --dir` streams the working directory to the target (as a tar, never
+buffered whole), runs the command in a temp copy there, and `--sync` mirrors the
+files it changed back by content hash — only the delta returns
+([`KN-EXEC-030`](../roadmaps/milestones/m2-v0.2-real-use.md)). Ctrl-C forwards the
+real signal to the remote process over the framed KNIT2 stream
+([`KN-EXEC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)). Not yet carried
+across: TTY allocation for interactive programs (a future protocol version).
 
 ## Process and data lifecycle (a `run` end to end)
 

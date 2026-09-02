@@ -35,6 +35,12 @@ const (
 	FrameStdinEOF byte = 11
 	FrameSignal   byte = 12 // payload: 1 byte signal number (2=SIGINT, 15=SIGTERM)
 	// 13 (winsize) is reserved.
+
+	// directory transfer for --dir/--sync (KN-EXEC-030)
+	FrameInTar  byte = 20 // client -> server: --dir tree, tar chunk
+	FrameInEnd  byte = 21 // client -> server: end of --dir tree
+	FrameOutTar byte = 30 // server -> client: --sync mirror-back, tar chunk
+	FrameOutEnd byte = 31 // server -> client: end of --sync mirror-back
 )
 
 // MaxFrame is the largest payload a single frame may carry.
@@ -55,6 +61,10 @@ type Request struct {
 	HMAC string   `json:"hmac"`
 	Op   string   `json:"op"`
 	Cmd  []string `json:"cmd,omitempty"`
+	// Dir sends the client's working directory to the target and runs there
+	// (KN-EXEC-030); Sync mirrors changed files back on completion.
+	Dir  bool `json:"dir,omitempty"`
+	Sync bool `json:"sync,omitempty"`
 }
 
 // Envelope is the single JSON line the server sends in reply. For op "info"

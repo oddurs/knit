@@ -21,8 +21,9 @@ Usage:
   knit up [-d]              start sharing this machine (-d: background)
   knit down                stop the background agent
   knit gauge [--json]      show machines and their capacity  (alias: ls)
-  knit run [--on NAME] -- CMD [ARGS...]
+  knit run [--on NAME] [--dir] [--sync] -- CMD [ARGS...]
                            run a command on the machine with most headroom
+                           (--dir sends the working dir; --sync mirrors changes back)
   knit each -- CMD [ARGS...]
                            run a command on every machine at once
   knit key                 print this machine's cluster key
@@ -103,9 +104,10 @@ func run(args []string) int {
 	}
 }
 
-// cmdRun parses `run [--on NAME] -- CMD...`.
+// cmdRun parses `run [--on NAME] [--dir] [--sync] -- CMD...`.
 func cmdRun(args []string) int {
 	on := ""
+	dirMode, sync := false, false
 	i := 0
 	for i < len(args) {
 		switch {
@@ -116,8 +118,14 @@ func cmdRun(args []string) int {
 			}
 			on = args[i+1]
 			i += 2
+		case args[i] == "--dir":
+			dirMode = true
+			i++
+		case args[i] == "--sync":
+			sync = true
+			i++
 		case args[i] == "--":
-			return client.Run(on, args[i+1:])
+			return client.Run(on, dirMode, sync, args[i+1:])
 		default:
 			fmt.Fprintf(os.Stderr, "knit: unexpected argument %q (did you forget `--` before the command?)\n", args[i])
 			return client.ExitUsage

@@ -13,7 +13,9 @@ knit key                print this machine's cluster key
 knit join KEY           join the fabric that key belongs to
 ```
 
-`--mem` ships in v0.3; `--peer host:port` (global, pre-mDNS) ships in v0.2.
+`--dir` sends the working directory to the target and runs the command there;
+`--sync` also mirrors changed files back (implies `--dir`). `--mem` ships in v0.3;
+`--peer host:port` (global, pre-mDNS) is available now.
 
 ## Nomenclature
 

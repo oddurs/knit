@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -10,6 +11,7 @@ import (
 	"github.com/oddurs/knit/internal/proto"
 	"github.com/oddurs/knit/internal/scheduler"
 	"github.com/oddurs/knit/internal/transport"
+	"github.com/oddurs/knit/internal/treesync"
 )
 
 // Run schedules cmd and streams it. With onName set it pins that machine;
@@ -17,10 +19,13 @@ import (
 // least-loaded. A local win execs in-process and prints nothing; a remote run
 // prints one dim line to stderr. The return value is the command's exit code,
 // or a knit exit code on a knit-level failure.
-func Run(onName string, cmd []string) int {
+func Run(onName string, dirMode, sync bool, cmd []string) int {
 	if len(cmd) == 0 {
 		fmt.Fprintln(os.Stderr, "knit: run needs a command after --")
 		return ExitUsage
+	}
+	if sync {
+		dirMode = true // can't mirror back what was never sent
 	}
 	key, err := loadKey()
 	if err != nil {
@@ -32,7 +37,7 @@ func Run(onName string, cmd []string) int {
 
 	if onName != "" {
 		if c, ok := scheduler.ByName(peers, onName); ok {
-			return runRemote(c, key, cmd)
+			return runRemote(c, key, cmd, dirMode, sync)
 		}
 		if onName == localCandidate().Name {
 			return runLocal(cmd)
@@ -44,9 +49,9 @@ func Run(onName string, cmd []string) int {
 	cands := append([]scheduler.Candidate{localCandidate()}, peers...)
 	best, ok := scheduler.Pick(cands)
 	if !ok || best.Local {
-		return runLocal(cmd)
+		return runLocal(cmd) // already runs in the local working directory
 	}
-	return runRemote(best, key, cmd)
+	return runRemote(best, key, cmd, dirMode, sync)
 }
 
 // runLocal executes the command in this process's environment, inheriting
@@ -68,8 +73,9 @@ func runLocal(cmd []string) int {
 // stdin as frames with an explicit EOF, Ctrl-C/SIGTERM forwarded as signal
 // frames, and stdout/stderr/exit coming back. The command's exit code becomes
 // this process's exit code.
-func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
-	sess, err := transport.Open(c.HostPortOrEmpty(), key, proto.Request{Op: proto.OpRun, Cmd: cmd}, dialTimeout)
+func runRemote(c scheduler.Candidate, key []byte, cmd []string, dirMode, sync bool) int {
+	req := proto.Request{Op: proto.OpRun, Cmd: cmd, Dir: dirMode, Sync: sync}
+	sess, err := transport.Open(c.HostPortOrEmpty(), key, req, dialTimeout)
 	if err != nil {
 		if re, ok := err.(*transport.ReplyError); ok && re.Code == proto.CodeUnauthorized {
 			fmt.Fprintf(os.Stderr, "knit: unauthorized on %s — run `knit key` there and `knit join <key>` here\n", c.Name)
@@ -83,6 +89,25 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 	fmt.Fprintf(os.Stderr, "%s\n", dim("knit → "+c.Name))
 
 	fw := proto.NewFrameWriter(sess.Conn)
+
+	// --dir: stream the working directory to the target before anything else.
+	if dirMode {
+		if cwd, err := os.Getwd(); err == nil {
+			pr, pw := io.Pipe()
+			go func() { pw.CloseWithError(treesync.WriteTar(pw, cwd)) }()
+			buf := make([]byte, 32*1024)
+			for {
+				n, rerr := pr.Read(buf)
+				if n > 0 {
+					_ = fw.Write(proto.FrameInTar, buf[:n])
+				}
+				if rerr != nil {
+					break
+				}
+			}
+			_ = fw.Write(proto.FrameInEnd, nil)
+		}
+	}
 
 	// Forward stdin as frames, then an explicit EOF frame.
 	go func() {
@@ -114,6 +139,8 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 		}
 	}()
 
+	var syncPw *io.PipeWriter
+	var syncErr chan error
 	for {
 		t, p, err := proto.ReadFrame(sess.R)
 		if err != nil {
@@ -125,6 +152,23 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 			os.Stdout.Write(p)
 		case proto.FrameStderr:
 			os.Stderr.Write(p)
+		case proto.FrameOutTar:
+			if syncPw == nil {
+				cwd, _ := os.Getwd()
+				pr, pw := io.Pipe()
+				syncPw = pw
+				syncErr = make(chan error, 1)
+				go func() { syncErr <- treesync.ReadTar(pr, cwd) }()
+			}
+			_, _ = syncPw.Write(p)
+		case proto.FrameOutEnd:
+			if syncPw != nil {
+				syncPw.Close()
+				if e := <-syncErr; e != nil {
+					fmt.Fprintln(os.Stderr, "knit: applying --sync changes:", e)
+				}
+				syncPw = nil
+			}
 		case proto.FrameExit:
 			return proto.ExitCode(p)
 		}
