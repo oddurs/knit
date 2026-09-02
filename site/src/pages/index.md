@@ -1,72 +1,60 @@
 ---
 layout: ../layouts/Base.astro
 ---
-# 🧶 knit
+# Your machines, one pool of compute
 
-Share hardware with the machines around you. One binary, no configuration,
-and commands that behave exactly as if they ran here.
-
-## 1. Start
-
-On each machine, once.
+knit lets the computers around you share their hardware. Run a command and
+it executes on whichever machine has the most headroom, and everything comes
+back as if it had run right here. No configuration, no accounts, no
+addresses. One small binary.
 
 ```
-$ brew install oddurs/tap/knit
-$ knit up -d
-knit up (pid 4242) — this machine is now a loop in the fabric
-```
-
-## 2. Pair
-
-One key, pasted once. That is the whole setup.
-
-```
-$ knit key                    # on the first machine
-7c1e5b…9f04
-
-$ knit join 7c1e5b…9f04       # on the second
-knit: cluster key installed — this machine now trusts that cluster
-```
-
-## 3. Run
-
-Work goes to the machine with the most headroom. Output comes back as if it
-were local.
-
-```
-$ knit gauge
-NAME     ADDR          OS/ARCH       CPUS  MEM     FREE   LOAD  GPU           LINK
-studio   169.254.87.3  darwin/arm64  24    128.0G  96.4G  0.31  Apple M3 Max  thunderbolt ~40G
-laptop   —             darwin/arm64  8     24.0G   9.8G   4.02  Apple M2      (this machine)
-
 $ knit run -- ffmpeg -i big.mov out.mp4
 knit → studio
-
-$ cat corpus.jsonl | knit run -- python embed.py > vectors.jsonl
-knit → studio
-
-$ knit run -- sh -c 'exit 7'; echo $?
-knit → studio
-7
-
-$ knit each -- uname -sr
-[laptop] Darwin 25.5.0
-[studio] Darwin 25.5.0
 ```
 
-## What happened
+That is the whole product. The laptop was busy, the Mac Studio on the desk was
+not, so the transcode ran there. Its output streamed back, its exit code came
+with it, and the one dim line is the only sign the work left the room. Had the
+laptop been the better choice, knit would have printed nothing at all.
 
-knit found the other machine by itself, over the cable. The key proved they
-trust each other. Each command ran where load per core was lowest, its output
-streamed back, and its exit code came with it. The dim `knit → studio` line is
-the only sign the work left the room; when this machine wins, knit prints
-nothing at all.
+## Nothing to configure
 
-Thunderbolt cable, Ethernet, Wi-Fi, or a Tailscale tailnet. macOS and Linux.
-Free memory and accelerators are reported, so `knit run --mem 48` puts a model
-where it fits and `knit each` starts distributed jobs with no hostfile.
+Machines find each other on their own, on every interface they have. Plug a
+Thunderbolt cable between two Macs and they are peers a second later; the same
+happens over Ethernet and Wi-Fi. Pairing is one key, pasted once. There is no
+config file, no daemon to describe, no list of hosts to keep current.
 
-[Two machines in two minutes](/knit/docs/getting-started/quickstart/) ·
-[Commands](/knit/docs/reference/commands/) ·
-[AI workloads](/knit/docs/guides/ai-workloads/) ·
-[GitHub](https://github.com/oddurs/knit)
+## As fast as the cable
+
+A Thunderbolt 4 cable is a forty-gigabit link with sub-millisecond latency.
+knit streams over it at line rate: one write per chunk, nothing allocated on
+the way, nothing buffered. The machine on the other end is the limit, not
+knit.
+
+## Exactly as if it ran here
+
+stdin, stdout, stderr, pipes, exit codes, Ctrl-C. All of it behaves
+byte-for-byte as a local command would, so scripts, `set -e`, and `| wc -l`
+work unchanged. If the connection drops, the remote process is stopped; nothing
+is ever left running on the other machine.
+
+## What it is used for
+
+- Offloading the heavy thing: a transcode, a build, a quantization, an eval.
+- Pipes of any size: `cat 50GB.log | knit run -- zstd -19 > out.zst`.
+- One command on every machine: `knit each -- brew upgrade`.
+- Small AI clusters: `knit run --mem 48` puts a model where it fits, and
+  `knit each` starts a distributed job with the ranks and hosts already set.
+
+## Two minutes to the first run
+
+```sh
+brew install oddurs/tap/knit
+knit up -d
+```
+
+On the second machine, `knit join` the key the first one prints, and you are
+done. [Two machines in two minutes](/knit/docs/getting-started/quickstart/)
+walks through it; [Commands](/knit/docs/reference/commands/) is the whole
+surface, seven of them.
