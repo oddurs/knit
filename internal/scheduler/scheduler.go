@@ -7,7 +7,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/oddurs/connex/internal/proto"
+	"github.com/oddurs/knit/internal/proto"
 )
 
 // Candidate is a machine the scheduler may place work on. Local candidates have

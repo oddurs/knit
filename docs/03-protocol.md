@@ -1,6 +1,6 @@
 # Wire protocol
 
-Version token `CONNEX1`. One TCP connection per operation. Small enough to fit on
+Version token `KNIT1`. One TCP connection per operation. Small enough to fit on
 a page, by design — that page is this document.
 
 ## Design goals
@@ -15,7 +15,7 @@ a page, by design — that page is this document.
 
 ## Socket setup
 
-Both ends set `TCP_NODELAY` (Nagle off) immediately after connect/accept — connex
+Both ends set `TCP_NODELAY` (Nagle off) immediately after connect/accept — knit
 sends many small frames interactively, and Nagle would add up to 40 ms of
 head-of-line delay per turn. Send/receive buffers are left to the OS default on
 LAN and raised on high-bandwidth-delay links only if benchmarks show a ceiling
@@ -25,7 +25,7 @@ short-lived and a drop is meaningful (see below).
 ## Handshake
 
 ```
-server → client:   CONNEX1 <32-hex-char nonce>\n
+server → client:   KNIT1 <32-hex-char nonce>\n
 client → server:   {"v":1,"hmac":"<hex hmac-sha256(key,nonce)>","op":"run","cmd":["zstd","-19"]}\n
 server → client:   {"ok":true}\n                       (or {"ok":false,"error":"...","code":"..."}\n)
 ```
@@ -52,8 +52,8 @@ and closes:
  "mem_gb":128.0,"mem_free_gb":96.4,"load1":0.42,"accel":"metal","gpu":"Apple M3 Ultra"}
 ```
 
-`mem_free_gb`, `accel`, and `gpu` ship in v0.3 ([`CX-SYS-030`](../roadmaps/milestones/m3-v0.3-ai-native.md));
-v0.1 populates `name/os/arch/cpus/mem_gb/load1`. Consumed by `connex ls`, the
+`mem_free_gb`, `accel`, and `gpu` ship in v0.3 ([`KN-SYS-030`](../roadmaps/milestones/m3-v0.3-ai-native.md));
+v0.1 populates `name/os/arch/cpus/mem_gb/load1`. Consumed by `knit ls`, the
 scheduler, and — because it requires a valid HMAC — as the authentication probe.
 
 ## op = run
@@ -70,8 +70,8 @@ frame = [type:1][len:4 big-endian][payload:len]
 type 1  stdout chunk
 type 2  stderr chunk
 type 3  exit      payload = 4-byte big-endian exit code; connection closes after
-type 4  signal    (reserved, CONNEX2 — client→server needs both directions framed)
-type 5  winsize   (reserved, CONNEX2 — TTY support)
+type 4  signal    (reserved, KNIT2 — client→server needs both directions framed)
+type 5  winsize   (reserved, KNIT2 — TTY support)
 ```
 
 - `len` is capped at 1 MiB (`maxFrame`); a larger declared length is a protocol
@@ -94,21 +94,21 @@ CLI can name the fix (principle: errors name the fix, not just the failure).
 
 | code           | meaning                                   | CLI guidance shown |
 | -------------- | ----------------------------------------- | ------------------ |
-| `unauthorized` | HMAC did not verify                       | run `connex key` on a trusted machine, `connex join <key>` here |
-| `version`      | agent speaks a newer protocol             | upgrade connex on this machine |
+| `unauthorized` | HMAC did not verify                       | run `knit key` on a trusted machine, `knit join <key>` here |
+| `version`      | agent speaks a newer protocol             | upgrade knit on this machine |
 | `empty_cmd`    | `run` with no command                     | (client-side guard; should not reach the wire) |
 | `spawn`        | process failed to start (e.g. not found)  | the underlying exec error, verbatim |
-| `internal`     | agent-side unexpected error               | check `~/.connex/agent.log` on the target |
+| `internal`     | agent-side unexpected error               | check `~/.knit/agent.log` on the target |
 
-## Forward compatibility: CONNEX2 (sketch, not v1)
+## Forward compatibility: KNIT2 (sketch, not v1)
 
 Signals and TTYs both require the **client→server** direction to be framed too, so
-they are gated behind a version bump rather than bolted onto CONNEX1. CONNEX2
+they are gated behind a version bump rather than bolted onto KNIT1. KNIT2
 keeps the handshake identical and changes only the post-`ok` run phase: both
 directions carry frames, adding `signal` (SIGINT/SIGTERM/SIGWINCH) and `winsize`.
 v0.1 gets the 90% win — Ctrl-C reaching the remote process — by sending a single
 out-of-band SIGINT as a one-byte control before `CloseWrite`, documented in
-[`CX-EXEC-010`](../roadmaps/milestones/m1-v0.1-fabric.md); full framing waits.
+[`KN-EXEC-010`](../roadmaps/milestones/m1-v0.1-fabric.md); full framing waits.
 
 ## Security summary
 

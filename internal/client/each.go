@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/oddurs/connex/internal/proto"
-	"github.com/oddurs/connex/internal/scheduler"
-	"github.com/oddurs/connex/internal/transport"
+	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/scheduler"
+	"github.com/oddurs/knit/internal/transport"
 )
 
 // Each runs cmd on every reachable, authorized agent concurrently, prefixing
@@ -20,17 +20,17 @@ import (
 // exited 0, else the highest code observed.
 func Each(cmd []string) int {
 	if len(cmd) == 0 {
-		fmt.Fprintln(os.Stderr, "connex: each needs a command after --")
+		fmt.Fprintln(os.Stderr, "knit: each needs a command after --")
 		return ExitUsage
 	}
 	key, err := loadKey()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "connex:", err)
+		fmt.Fprintln(os.Stderr, "knit:", err)
 		return 1
 	}
 	peers := probePeers(key, true)
 	if len(peers) == 0 {
-		fmt.Fprintln(os.Stderr, "connex: no other machines found")
+		fmt.Fprintln(os.Stderr, "knit: no other machines found")
 		return ExitUnreachable
 	}
 
@@ -54,7 +54,7 @@ func Each(cmd []string) int {
 		}
 		summary = append(summary, fmt.Sprintf("%s=%d", c.Name, codes[i]))
 	}
-	fmt.Fprintf(os.Stderr, "%s\n", dim("connex each: "+strings.Join(summary, " ")))
+	fmt.Fprintf(os.Stderr, "%s\n", dim("knit each: "+strings.Join(summary, " ")))
 	return worst
 }
 
@@ -62,7 +62,7 @@ func eachOne(c scheduler.Candidate, key []byte, cmd []string, mu *sync.Mutex) in
 	sess, err := transport.Open(c.HostPortOrEmpty(), key, proto.Request{Op: proto.OpRun, Cmd: cmd}, dialTimeout)
 	if err != nil {
 		mu.Lock()
-		fmt.Fprintf(os.Stderr, "[%s] connex: %v\n", c.Name, err)
+		fmt.Fprintf(os.Stderr, "[%s] knit: %v\n", c.Name, err)
 		mu.Unlock()
 		return ExitUnreachable
 	}

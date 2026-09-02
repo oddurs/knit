@@ -1,4 +1,4 @@
-# connex roadmaps
+# knit roadmaps
 
 The plan is not prose you have to keep in sync by hand. It is a **coded system**:
 every unit of work has a stable ID, lives in one machine-checkable registry, and
@@ -28,7 +28,7 @@ roadmaps/
 Every work item has an ID of the form:
 
 ```
-CX-<AREA>-<NNN>
+KN-<AREA>-<NNN>
    │      │
    │      └─ zero-padded sequence within the area (001, 010, 030 …)
    └──────── area code (see areas/README.md)
@@ -39,8 +39,8 @@ The numeric block is loosely milestone-aligned so an ID hints at when it lands:
 convention for readability, not a rule the validator enforces — `milestone` is the
 authoritative field.
 
-Examples: `CX-EXEC-001` (core executor, v0.1), `CX-SYS-030` (free-mem/GPU reporting,
-v0.3), `CX-NET-040` (SOCKS proxy, v0.4).
+Examples: `KN-EXEC-001` (core executor, v0.1), `KN-SYS-030` (free-mem/GPU reporting,
+v0.3), `KN-NET-040` (SOCKS proxy, v0.4).
 
 ## Area codes
 

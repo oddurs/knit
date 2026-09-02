@@ -1,7 +1,7 @@
-// Package transport dials an agent and performs the CONNEX1 client handshake:
+// Package transport dials an agent and performs the KNIT1 client handshake:
 // read the nonce, prove knowledge of the cluster key with an HMAC, send the
 // request, and read the server's reply envelope. TCP_NODELAY is set on connect
-// because connex streams many small frames interactively. See docs/03-protocol.md.
+// because knit streams many small frames interactively. See docs/03-protocol.md.
 package transport
 
 import (
@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oddurs/connex/internal/keys"
-	"github.com/oddurs/connex/internal/proto"
+	"github.com/oddurs/knit/internal/keys"
+	"github.com/oddurs/knit/internal/proto"
 )
 
 // HandshakeTimeout bounds the control exchange before streaming begins.
@@ -100,7 +100,7 @@ func Open(addr string, key []byte, req proto.Request, dialTimeout time.Duration)
 func parseGreeting(line string) (string, error) {
 	f := strings.Fields(strings.TrimSpace(line))
 	if len(f) != 2 || f[0] != proto.Magic {
-		return "", fmt.Errorf("not a connex agent (greeting %q)", strings.TrimSpace(line))
+		return "", fmt.Errorf("not a knit agent (greeting %q)", strings.TrimSpace(line))
 	}
 	return f[1], nil
 }

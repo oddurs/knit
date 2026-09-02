@@ -1,11 +1,12 @@
 # Build output
+/knit
 /connex
 /dist/
 *.exe
 
 # Local agent/runtime state
-/.connex/
-/.connex-smoke/
+/.knit/
+/.knit-smoke/
 
 # Go
 *.test

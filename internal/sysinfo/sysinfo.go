@@ -1,5 +1,5 @@
 // Package sysinfo reports this machine's capacity: cores, total memory, and
-// 1-minute load. Free-memory and accelerator fields arrive in v0.3 (CX-SYS-030).
+// 1-minute load. Free-memory and accelerator fields arrive in v0.3 (KN-SYS-030).
 // The OS-specific probes live in sysinfo_darwin.go and sysinfo_linux.go.
 package sysinfo
 
@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/oddurs/connex/internal/proto"
+	"github.com/oddurs/knit/internal/proto"
 )
 
 // Local returns a populated info envelope for this machine.

@@ -7,7 +7,7 @@ One command, no CGo, reproducible:
 ```sh
 CGO_ENABLED=0 go build -trimpath \
   -ldflags "-s -w -X main.version=$(git describe --tags --always)" \
-  -o connex ./cmd/connex
+  -o knit ./cmd/knit
 ```
 
 - `CGO_ENABLED=0` → a fully static binary; `sysinfo` uses `/proc` and `sysctl`
@@ -25,7 +25,7 @@ in CI, but the two-machine reality is verified by a documented manual smoke test
 | ----- | ---- | --- |
 | **unit** | framing round-trips, HMAC sign/verify, keyfile load/create, scheduler scoring, sysinfo parsers | table tests, golden inputs; parsers fed captured `/proc` and `sysctl` fixtures |
 | **protocol** | full handshake + `info` + `run` over an in-process `net.Pipe` and over loopback TCP | a real agent goroutine, a real client, asserting bytes and exit codes |
-| **loopback e2e** | `connex up -d`, `connex ls`, `echo hi \| connex run --on $(hostname -s) -- cat` | scripted; runs on one machine, exercises the whole stack against the local agent |
+| **loopback e2e** | `knit up -d`, `knit ls`, `echo hi \| knit run --on $(hostname -s) -- cat` | scripted; runs on one machine, exercises the whole stack against the local agent |
 | **race** | the pump/exit goroutines | `go test -race ./...` in CI, non-negotiable |
 | **fuzz** | frame reader (`len` bounds, truncation) and the JSON handshake parser | `go test -fuzz`, seeded corpus committed |
 | **manual matrix** | two machines over Thunderbolt bridge and over Wi-Fi | [`manual-test.md`](manual-test.md) checklist; run before each tagged release |
@@ -55,17 +55,17 @@ GitHub Actions, on push and PR:
 3. `go test -race ./...`
 4. `go build` for all four `GOOS/GOARCH` targets (compile-only cross-check)
 5. `python3 roadmaps/tools/roadmap.py check` — the plan itself must stay valid:
-   unique IDs, resolvable dependencies, no cycles ([`CX-TEST-002`](../roadmaps/milestones/m1-v0.1-fabric.md))
+   unique IDs, resolvable dependencies, no cycles ([`KN-TEST-002`](../roadmaps/milestones/m1-v0.1-fabric.md))
 
 ## Release
 
 - Tag `vMAJOR.MINOR.PATCH`; `goreleaser` builds the four binaries, checksums, and
   a source archive, and cuts a GitHub release.
-- A `connex` Homebrew tap formula points at the release
-  ([`CX-OPS-021`](../roadmaps/milestones/m2-v0.2-real-use.md)); `brew install
-  connex/tap/connex` is the headline install path.
-- `connex --version` prints the `-ldflags`-injected version so bug reports are
+- A `knit` Homebrew tap formula points at the release
+  ([`KN-OPS-021`](../roadmaps/milestones/m2-v0.2-real-use.md)); `brew install
+  knit/tap/knit` is the headline install path.
+- `knit --version` prints the `-ldflags`-injected version so bug reports are
   precise.
 - Versioning follows the milestone line (v0.1 → v0.4 → v1.0); the wire protocol
-  has its own token (`CONNEX1`) that only bumps on an incompatible change, decoupled
+  has its own token (`KNIT1`) that only bumps on an incompatible change, decoupled
   from the CLI version.

@@ -9,10 +9,10 @@ accounts), safe against replay and passive listeners on a LAN, and implementable
 the stdlib with no dependency.
 
 ## Decision
-Machines share a 32-byte key (`~/.connex/key`, 0600, `crypto/rand`-generated).
+Machines share a 32-byte key (`~/.knit/key`, 0600, `crypto/rand`-generated).
 Per connection the agent sends a fresh 16-byte random nonce; the client returns
 `HMAC-SHA256(key, nonce)`; the agent verifies in constant time (`hmac.Equal`). The
-key never crosses the wire. Pairing is `connex key` / `connex join <key>`.
+key never crosses the wire. Pairing is `knit key` / `knit join <key>`.
 
 ## Alternatives considered
 - **Send the key / a bearer token directly** — trivially replayable and exposed to

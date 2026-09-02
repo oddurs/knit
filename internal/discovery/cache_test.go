@@ -6,7 +6,7 @@ import (
 )
 
 func TestCacheRoundTrip(t *testing.T) {
-	t.Setenv("CONNEX_HOME", t.TempDir())
+	t.Setenv("KNIT_HOME", t.TempDir())
 	want := []Peer{{Name: "studio", Addr: "169.254.1.2", Port: 5000}}
 	writeCache(want)
 	got, ok := readCache()
@@ -16,7 +16,7 @@ func TestCacheRoundTrip(t *testing.T) {
 }
 
 func TestCacheExpires(t *testing.T) {
-	t.Setenv("CONNEX_HOME", t.TempDir())
+	t.Setenv("KNIT_HOME", t.TempDir())
 	writeCache([]Peer{{Name: "x", Addr: "1.2.3.4", Port: 1}})
 	// Backdate by writing a stale timestamp directly is simplest via a sleep
 	// shorter than TTL to confirm freshness, then assert TTL logic bounds it.

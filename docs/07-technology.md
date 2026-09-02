@@ -5,7 +5,7 @@ in that order** — and each irreversible one has an ADR. This doc is the map.
 
 ## Language: Go
 
-Go is the right substrate for connex, and the reasoning is in
+Go is the right substrate for knit, and the reasoning is in
 [ADR-0001](adr/0001-language-go.md). In brief:
 
 - **Single static binary, trivially cross-compiled** for darwin/arm64,
@@ -14,7 +14,7 @@ Go is the right substrate for connex, and the reasoning is in
 - **Concurrency that matches the problem.** The execution model is "a few
   goroutines per connection moving bytes between a socket and a pipe." Goroutines
   + channels express it in a few dozen lines with no callback soup.
-- **A standard library that already contains connex's hard parts:** `crypto/hmac`,
+- **A standard library that already contains knit's hard parts:** `crypto/hmac`,
   `crypto/rand`, `net` with `TCP_NODELAY` and `CloseWrite`, `os/exec` with pipe
   plumbing, `encoding/binary` and `encoding/json`. The runtime dependency count is
   therefore *one*.
@@ -50,7 +50,7 @@ tidy` is clean in CI; Dependabot-style bumps are reviewed, not automatic.
   plaintext gap. TLS 1.3 adds one round-trip to the handshake and negligible
   streaming cost with AES-NI/hardware crypto. See
   [08-security-model.md](08-security-model.md).
-- **Not QUIC/HTTP/gRPC.** They buy multiplexing and congestion control connex does
+- **Not QUIC/HTTP/gRPC.** They buy multiplexing and congestion control knit does
   not need on a single short-lived LAN stream, and they cost the "one page"
   protocol and a pile of dependencies. Recorded in
   [ADR-0005](adr/0005-tcp-length-prefixed-framing.md).
@@ -72,14 +72,14 @@ useless. Full reasoning in [ADR-0004](adr/0004-hmac-nonce-auth.md).
 
 mDNS for zero-config `name → addr:port`; a ~5 s peer cache so back-to-back
 commands feel instant without a client daemon. Tradeoff in
-[ADR-0003](adr/0003-mdns-discovery-and-cache.md). `--peer` / `CONNEX_PEERS` is the
+[ADR-0003](adr/0003-mdns-discovery-and-cache.md). `--peer` / `KNIT_PEERS` is the
 escape hatch where multicast is filtered (Tailscale, some corporate LANs).
 
 ## Build & release: `go build`, `goreleaser`, a Homebrew tap
 
 Reproducible static builds via `CGO_ENABLED=0 go build -trimpath -ldflags "-s -w
 -X main.version=..."`, cross-compiled in CI for the four targets, released with
-`goreleaser`, distributed via a `connex` Homebrew tap and raw binary attachments.
+`goreleaser`, distributed via a `knit` Homebrew tap and raw binary attachments.
 Details in [09-build-test-release.md](09-build-test-release.md).
 
 ## Platform support

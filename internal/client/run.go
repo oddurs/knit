@@ -9,24 +9,24 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/oddurs/connex/internal/proto"
-	"github.com/oddurs/connex/internal/scheduler"
-	"github.com/oddurs/connex/internal/transport"
+	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/scheduler"
+	"github.com/oddurs/knit/internal/transport"
 )
 
 // Run schedules cmd and streams it. With onName set it pins that machine;
 // otherwise it scores the local machine against reachable peers and picks the
 // least-loaded. A local win execs in-process and prints nothing; a remote run
 // prints one dim line to stderr. The return value is the command's exit code,
-// or a connex exit code on a connex-level failure.
+// or a knit exit code on a knit-level failure.
 func Run(onName string, cmd []string) int {
 	if len(cmd) == 0 {
-		fmt.Fprintln(os.Stderr, "connex: run needs a command after --")
+		fmt.Fprintln(os.Stderr, "knit: run needs a command after --")
 		return ExitUsage
 	}
 	key, err := loadKey()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "connex:", err)
+		fmt.Fprintln(os.Stderr, "knit:", err)
 		return 1
 	}
 
@@ -40,7 +40,7 @@ func Run(onName string, cmd []string) int {
 		if onName == localCandidate().Name {
 			return runLocal(cmd)
 		}
-		fmt.Fprintf(os.Stderr, "connex: no reachable machine named %q\n", onName)
+		fmt.Fprintf(os.Stderr, "knit: no reachable machine named %q\n", onName)
 		return ExitUnreachable
 	}
 
@@ -53,7 +53,7 @@ func Run(onName string, cmd []string) int {
 }
 
 // runLocal executes the command in this process's environment, inheriting
-// stdio, and returns its exit code. connex prints nothing — the invisible
+// stdio, and returns its exit code. knit prints nothing — the invisible
 // fallback.
 func runLocal(cmd []string) int {
 	c := exec.Command(cmd[0], cmd[1:]...)
@@ -62,7 +62,7 @@ func runLocal(cmd []string) int {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return ee.ExitCode()
 		}
-		fmt.Fprintln(os.Stderr, "connex:", err)
+		fmt.Fprintln(os.Stderr, "knit:", err)
 		return 1
 	}
 	return 0
@@ -73,15 +73,15 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 	sess, err := transport.Open(c.HostPortOrEmpty(), key, proto.Request{Op: proto.OpRun, Cmd: cmd}, dialTimeout)
 	if err != nil {
 		if re, ok := err.(*transport.ReplyError); ok && re.Code == proto.CodeUnauthorized {
-			fmt.Fprintf(os.Stderr, "connex: unauthorized on %s — run `connex key` there and `connex join <key>` here\n", c.Name)
+			fmt.Fprintf(os.Stderr, "knit: unauthorized on %s — run `knit key` there and `knit join <key>` here\n", c.Name)
 			return ExitUnauthorized
 		}
-		fmt.Fprintf(os.Stderr, "connex: cannot reach %s: %v\n", c.Name, err)
+		fmt.Fprintf(os.Stderr, "knit: cannot reach %s: %v\n", c.Name, err)
 		return ExitUnreachable
 	}
 	defer sess.Close()
 
-	fmt.Fprintf(os.Stderr, "%s\n", dim("connex → "+c.Name))
+	fmt.Fprintf(os.Stderr, "%s\n", dim("knit → "+c.Name))
 
 	// Forward stdin; half-close on EOF so the remote process sees EOF.
 	go func() {
@@ -108,7 +108,7 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 	for {
 		t, p, err := proto.ReadFrame(sess.R)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "connex: connection lost before command finished")
+			fmt.Fprintln(os.Stderr, "knit: connection lost before command finished")
 			return ExitDisconnected
 		}
 		switch t {

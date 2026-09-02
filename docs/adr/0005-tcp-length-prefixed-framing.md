@@ -11,11 +11,11 @@ protocol to one page and the dependency count at zero for the transport.
 Raw TCP, `TCP_NODELAY` on. One operation per connection. Control messages are one
 JSON line each (handshake, `info`). The `run` data plane is length-prefixed frames
 `[type:1][len:4 BE][payload]` with types stdout/stderr/exit (signal/winsize
-reserved for CONNEX2). Frames cap at 1 MiB; each frame is one `writev`. Detailed in
+reserved for KNIT2). Frames cap at 1 MiB; each frame is one `writev`. Detailed in
 [03-protocol.md](../03-protocol.md).
 
 ## Alternatives considered
-- **gRPC / HTTP/2** — multiplexing and flow control connex doesn't need on a single
+- **gRPC / HTTP/2** — multiplexing and flow control knit doesn't need on a single
   short LAN stream, plus a large dependency and codegen. Costs the one-page protocol.
 - **QUIC** — congestion control and 0-RTT are wasted on a point-to-point cable;
   heavy dependency.
@@ -25,7 +25,7 @@ reserved for CONNEX2). Frames cap at 1 MiB; each frame is one `writev`. Detailed
   output. Framing is required.
 - **One long-lived multiplexed connection per peer** — would save handshakes but
   needs stream IDs and flow control, breaking the one-page rule. Connection reuse is
-  a tracked backlog optimization instead ([CX-XPORT-050](../../roadmaps/areas/backlog.md)).
+  a tracked backlog optimization instead ([KN-XPORT-050](../../roadmaps/areas/backlog.md)).
 
 ## Consequences
 - The protocol fits on a page and needs no transport dependency.

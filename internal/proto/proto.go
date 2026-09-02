@@ -1,9 +1,9 @@
-// Package proto defines the connex wire protocol: the CONNEX1 handshake,
+// Package proto defines the knit wire protocol: the KNIT1 handshake,
 // the JSON control messages, and the length-prefixed stdio framing.
 //
 // One TCP connection per operation. The server opens with
 //
-//	CONNEX1 <32-hex nonce>\n
+//	KNIT1 <32-hex nonce>\n
 //
 // the client replies with one Request line, and the server replies with one
 // Envelope line. For op "run" the client then streams raw stdin while the
@@ -14,7 +14,7 @@ package proto
 const Version = 1
 
 // Magic is the greeting token prefixing the server nonce line.
-const Magic = "CONNEX1"
+const Magic = "KNIT1"
 
 // Ops.
 const (
@@ -27,7 +27,7 @@ const (
 	FrameStdout byte = 1
 	FrameStderr byte = 2
 	FrameExit   byte = 3
-	// 4 (signal) and 5 (winsize) are reserved for CONNEX2.
+	// 4 (signal) and 5 (winsize) are reserved for KNIT2.
 )
 
 // MaxFrame is the largest payload a single frame may carry.

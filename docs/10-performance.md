@@ -1,13 +1,13 @@
 # Performance
 
-Speed is a feature of connex, designed in rather than tuned in later. This doc is
+Speed is a feature of knit, designed in rather than tuned in later. This doc is
 the budget every change is measured against and the set of techniques that meet
 it. The governing idea: **on the hot path, the physical link is the only thing
 allowed to be the bottleneck.**
 
 ## The two paths
 
-connex has a *control path* (discovery, probing, scheduling, handshake) and a
+knit has a *control path* (discovery, probing, scheduling, handshake) and a
 *data path* (streaming stdio). They have completely different budgets:
 
 - The **control path** runs once per command and is allowed to cost a bounded,
@@ -37,9 +37,9 @@ i.e. indistinguishable from typing the command yourself.
 ### Making the second command instant
 
 A cold mDNS browse is the single largest control-path cost, and paying it on every
-command would make connex feel laggy. So the client caches `name → addr:port`
-(never capacity) at `~/.connex/peers.json` with a short TTL (~5 s, `CONNEX_NO_CACHE`
-to disable, `CONNEX_TIMEOUT_MS` to tune the probe). Back-to-back commands — the
+command would make knit feel laggy. So the client caches `name → addr:port`
+(never capacity) at `~/.knit/peers.json` with a short TTL (~5 s, `KNIT_NO_CACHE`
+to disable, `KNIT_TIMEOUT_MS` to tune the probe). Back-to-back commands — the
 common case in a build loop or an inference session — skip the browse entirely and
 re-probe only for live load. Freshness of *placement* is preserved because load is
 always probed live; only *addresses* are cached, and a stale address simply fails
@@ -82,7 +82,7 @@ With Nagle off, one `writev` per frame, and pooled buffers, the client's CPU cos
 per byte is a single `memmove`-class copy (or none, when `splice` engages). The
 practical ceiling is therefore:
 
-- **Over Wi-Fi:** the radio (hundreds of Mbit/s to low Gbit/s) — connex is never
+- **Over Wi-Fi:** the radio (hundreds of Mbit/s to low Gbit/s) — knit is never
   the limit.
 - **Over Ethernet:** the NIC line rate.
 - **Over Thunderbolt 4/5 bridge:** many GB/s; here the memory-copy path can
@@ -96,7 +96,7 @@ practical ceiling is therefore:
   simplicity; the `info` probe connection is not upgraded into the following
   `run`. Reusing it would shave one dial+handshake off a remote run. It is a real
   win and a real complication, so it is a tracked backlog item
-  ([`CX-XPORT-050`](../roadmaps/areas/backlog.md)), not a v1 feature — simplicity
+  ([`KN-XPORT-050`](../roadmaps/areas/backlog.md)), not a v1 feature — simplicity
   first, and the saved RTT is small next to the command's own runtime.
 - **A client-side discovery daemon.** Would make discovery truly 0 ms always, at
   the cost of a second long-lived process and stale-state bugs. The 5 s cache

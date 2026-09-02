@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/oddurs/connex/internal/paths"
+	"github.com/oddurs/knit/internal/paths"
 )
 
 // CacheTTL bounds how long a cached peer list is reused before a fresh browse.
@@ -18,10 +18,10 @@ type cacheFile struct {
 
 // CachedBrowse returns cached peers when the cache is younger than CacheTTL,
 // otherwise performs a fresh Browse and refreshes the cache. Setting
-// CONNEX_NO_CACHE forces a fresh browse every time. Only addresses are cached;
+// KNIT_NO_CACHE forces a fresh browse every time. Only addresses are cached;
 // callers must always probe for live capacity.
 func CachedBrowse(timeout time.Duration) []Peer {
-	if os.Getenv("CONNEX_NO_CACHE") != "" {
+	if os.Getenv("KNIT_NO_CACHE") != "" {
 		return Fresh(timeout)
 	}
 	if peers, ok := readCache(); ok {

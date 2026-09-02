@@ -1,14 +1,14 @@
 # Area codes
 
 Each area is one concern, and (for the code areas) usually one `internal/` package.
-The area code is the middle segment of every item ID: `CX-<AREA>-<NNN>`.
+The area code is the middle segment of every item ID: `KN-<AREA>-<NNN>`.
 
 | Code | Area | Maps to | Concern |
 | ---- | ---- | ------- | ------- |
-| `CORE`   | Core / entrypoint      | `cmd/connex` | `main`, flag dispatch, usage, the exit-code contract |
+| `CORE`   | Core / entrypoint      | `cmd/knit` | `main`, flag dispatch, usage, the exit-code contract |
 | `PROTO`  | Wire protocol          | `internal/proto` | frame types, read/write, version token, error codes |
 | `AUTH`   | Authentication         | `internal/keys` | keyfile, HMAC sign/verify, TLS pinning (v0.4) |
-| `CLI`    | Command surface        | `cmd/connex` | `key`/`join` and CLI/UX contracts |
+| `CLI`    | Command surface        | `cmd/knit` | `key`/`join` and CLI/UX contracts |
 | `SYS`    | System info            | `internal/sysinfo` | cores, memory, load, GPU/accel (darwin+linux) |
 | `DISC`   | Discovery              | `internal/discovery` | mDNS register/browse, peer cache, `--peer` |
 | `XPORT`  | Transport              | `internal/transport` | dial, handshake, socket tuning, TLS wrap (v0.4) |

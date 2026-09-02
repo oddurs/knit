@@ -26,7 +26,7 @@ func TestSignVerifyRoundTrip(t *testing.T) {
 
 func TestLoadOrCreateAndSave(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("CONNEX_HOME", dir)
+	t.Setenv("KNIT_HOME", dir)
 
 	k1, err := LoadOrCreate()
 	if err != nil {
@@ -54,7 +54,7 @@ func TestLoadOrCreateAndSave(t *testing.T) {
 }
 
 func TestSaveRejectsBadKey(t *testing.T) {
-	t.Setenv("CONNEX_HOME", t.TempDir())
+	t.Setenv("KNIT_HOME", t.TempDir())
 	if err := Save("not-hex"); err == nil {
 		t.Fatal("accepted non-hex key")
 	}

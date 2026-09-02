@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oddurs/connex/internal/proto"
-	"github.com/oddurs/connex/internal/transport"
+	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/transport"
 )
 
-// TestAbortReapsRemoteProcess verifies CX-EXEC-010: when the client aborts the
+// TestAbortReapsRemoteProcess verifies KN-EXEC-010: when the client aborts the
 // connection (as Ctrl-C does, via an RST), the agent reaps the remote process
 // group so nothing is orphaned — even a process producing no further output.
 func TestAbortReapsRemoteProcess(t *testing.T) {

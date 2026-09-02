@@ -8,11 +8,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/oddurs/connex/internal/paths"
+	"github.com/oddurs/knit/internal/paths"
 )
 
 // Up starts the agent. When detach is true it re-execs itself in the background
-// (setsid, logging to ~/.connex/agent.log, pidfile for Down); otherwise it runs
+// (setsid, logging to ~/.knit/agent.log, pidfile for Down); otherwise it runs
 // in the foreground.
 func Up(detach bool) error {
 	if detach {
@@ -50,7 +50,7 @@ func daemonize() error {
 	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(c.Process.Pid)+"\n"), 0o600); err != nil {
 		return err
 	}
-	fmt.Printf("connex agent up (pid %d) — this machine is now sharing compute\n", c.Process.Pid)
+	fmt.Printf("knit up (pid %d) — this machine is now a loop in the fabric\n", c.Process.Pid)
 	return nil
 }
 
@@ -76,6 +76,6 @@ func Down() error {
 	if err != nil {
 		return fmt.Errorf("stopping agent: %w", err)
 	}
-	fmt.Println("connex agent stopped")
+	fmt.Println("knit down — this machine left the fabric")
 	return nil
 }

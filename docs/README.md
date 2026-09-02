@@ -1,8 +1,8 @@
-# connex — documentation
+# knit — documentation
 
-**connex** is a single static binary that lets machines on the same desk, cable,
-or LAN share compute with zero configuration. Run `connex up` and a machine
-becomes discoverable capacity. Run `connex run -- <cmd>` anywhere and it executes
+**knit** is a single static binary that lets machines on the same desk, cable,
+or LAN share compute with zero configuration. Run `knit up` and a machine
+becomes discoverable capacity. Run `knit run -- <cmd>` anywhere and it executes
 on whichever machine — including this one — has the most spare headroom, with
 stdin/stdout/stderr and the exit code behaving byte-for-byte as if it ran locally.
 
@@ -25,7 +25,7 @@ When two of these pull against each other, the order above breaks the tie.
 
 | Doc | Contents |
 | --- | --- |
-| [01-vision.md](01-vision.md) | What connex is, the principles, why the cable is a solved problem |
+| [01-vision.md](01-vision.md) | What knit is, the principles, why the cable is a solved problem |
 | [02-architecture.md](02-architecture.md) | Components, package layout, concurrency model, data path, lifecycle |
 | [03-protocol.md](03-protocol.md) | Wire protocol: handshake, auth, framing, error codes, versioning |
 | [04-cli.md](04-cli.md) | Command surface, exit-code contract, output contracts, env vars |

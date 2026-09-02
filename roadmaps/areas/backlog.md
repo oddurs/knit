@@ -4,14 +4,14 @@ Measured future wins, deferred by choice rather than forgotten. They stay coded 
 [`../registry.toml`](../registry.toml) with `milestone = "backlog"` so they are
 never lost and their dependencies stay tracked.
 
-- [`CX-XPORT-050`] — **connection reuse.** Upgrade the winning peer's `info`-probe
+- [`KN-XPORT-050`] — **connection reuse.** Upgrade the winning peer's `info`-probe
   connection into the following `run`, saving one dial + handshake. A real but small
   latency win ([performance](../../docs/10-performance.md)); v1 keeps
   one-op-per-connection to preserve the one-page protocol
   ([ADR-0005](../../docs/adr/0005-tcp-length-prefixed-framing.md)). Promote only if
   measurement shows the saved RTT matters against real command runtimes.
 
-- [`CX-CORE-050`] — **Windows client.** The client subcommands are conceivable on
+- [`KN-CORE-050`] — **Windows client.** The client subcommands are conceivable on
   Windows; the agent is explicitly out of scope because it needs job-object process
   control that isn't worth the effort yet ([technology](../../docs/07-technology.md)).
 

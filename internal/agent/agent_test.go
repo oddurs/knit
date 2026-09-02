@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oddurs/connex/internal/proto"
-	"github.com/oddurs/connex/internal/transport"
+	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/transport"
 )
 
 // serveOne starts a loopback listener whose connections are handled by the real

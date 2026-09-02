@@ -1,4 +1,4 @@
-// Package keys implements connex authentication: a shared 32-byte cluster key
+// Package keys implements knit authentication: a shared 32-byte cluster key
 // and HMAC-SHA256 proof over a per-connection nonce. The key never crosses the
 // wire; a passive listener learns nothing reusable. See docs/08-security-model.md.
 package keys
@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/oddurs/connex/internal/paths"
+	"github.com/oddurs/knit/internal/paths"
 )
 
 // KeyLen is the cluster key length in bytes.
@@ -38,7 +38,7 @@ func LoadOrCreate() ([]byte, error) {
 	return key, nil
 }
 
-// Save installs a key provided as 64 hex characters (from `connex key`).
+// Save installs a key provided as 64 hex characters (from `knit key`).
 func Save(hexKey string) error {
 	key, err := decode(strings.TrimSpace(hexKey), "input")
 	if err != nil {

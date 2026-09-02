@@ -1,9 +1,9 @@
-# connex work-item registry — the single source of truth for the plan.
+# knit work-item registry — the single source of truth for the plan.
 # Edit by hand; validate with `python3 roadmaps/tools/roadmap.py check`;
 # regenerate STATUS.md with `... render`. Schema is documented in ../README.md.
 
 schema_version = 1
-project = "connex"
+project = "knit"
 
 # ─────────────────────────────── milestones ───────────────────────────────
 
@@ -45,7 +45,7 @@ goal = "Measured future wins deferred by choice, kept coded so they are never lo
 # ──────────────────────────────── m1 items ────────────────────────────────
 
 [[item]]
-id = "CX-PROTO-001"
+id = "KN-PROTO-001"
 title = "Wire types, framing, version token, error codes"
 area = "PROTO"
 milestone = "m1"
@@ -63,7 +63,7 @@ accept = [
 notes = "Foundation; everything on the wire depends on this."
 
 [[item]]
-id = "CX-AUTH-001"
+id = "KN-AUTH-001"
 title = "Keyfile load/create and HMAC-nonce sign/verify"
 area = "AUTH"
 milestone = "m1"
@@ -73,13 +73,13 @@ size = "S"
 depends = []
 spec = "docs/08-security-model.md"
 accept = [
-  "32-byte key auto-created at ~/.connex/key mode 0600 via crypto/rand",
+  "32-byte key auto-created at ~/.knit/key mode 0600 via crypto/rand",
   "sign = HMAC-SHA256(key, nonce); verify is constant-time (hmac.Equal)",
-  "CONNEX_HOME override honored; corrupt keyfile is a clear error",
+  "KNIT_HOME override honored; corrupt keyfile is a clear error",
 ]
 
 [[item]]
-id = "CX-SYS-001"
+id = "KN-SYS-001"
 title = "System info: cores, total memory, load1 (darwin+linux)"
 area = "SYS"
 milestone = "m1"
@@ -95,7 +95,7 @@ accept = [
 ]
 
 [[item]]
-id = "CX-DISC-001"
+id = "KN-DISC-001"
 title = "mDNS register (agent) and browse (client) on all interfaces"
 area = "DISC"
 milestone = "m1"
@@ -105,54 +105,54 @@ size = "M"
 depends = []
 spec = "docs/adr/0003-mdns-discovery-and-cache.md"
 accept = [
-  "agent registers _connex._tcp with TXT v/os/arch/cpus on the ephemeral port",
+  "agent registers _knit._tcp with TXT v/os/arch/cpus on the ephemeral port",
   "client browses on every interface; returns name -> (addrs, port)",
   "IPv4 preferred, IPv6 fallback; duplicate instances de-duplicated",
   "cold browse completes within the ~1s discovery budget",
 ]
 
 [[item]]
-id = "CX-DISC-002"
+id = "KN-DISC-002"
 title = "Short client-side peer cache (~5s TTL)"
 area = "DISC"
 milestone = "m1"
 status = "done"
 priority = "p1"
 size = "S"
-depends = ["CX-DISC-001"]
+depends = ["KN-DISC-001"]
 spec = "docs/10-performance.md"
 accept = [
-  "cache name->addr:port at ~/.connex/peers.json with ~5s TTL",
+  "cache name->addr:port at ~/.knit/peers.json with ~5s TTL",
   "capacity is never cached; only addresses",
-  "CONNEX_NO_CACHE disables it; connex ls always refreshes",
+  "KNIT_NO_CACHE disables it; knit ls always refreshes",
   "back-to-back runs skip the mDNS browse (verified by timing test)",
 ]
 
 [[item]]
-id = "CX-XPORT-001"
+id = "KN-XPORT-001"
 title = "Dial + handshake helper with socket tuning"
 area = "XPORT"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "M"
-depends = ["CX-PROTO-001", "CX-AUTH-001"]
+depends = ["KN-PROTO-001", "KN-AUTH-001"]
 spec = "docs/03-protocol.md"
 accept = [
   "dial sets TCP_NODELAY immediately after connect",
-  "reads CONNEX1 nonce line, sends signed request line, parses ok/err envelope",
+  "reads KNIT1 nonce line, sends signed request line, parses ok/err envelope",
   "returns typed errors for unauthorized/version/timeout",
 ]
 
 [[item]]
-id = "CX-AGENT-001"
+id = "KN-AGENT-001"
 title = "Agent: listener, auth gate, op dispatch, up/up -d/down"
 area = "AGENT"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "L"
-depends = ["CX-PROTO-001", "CX-AUTH-001", "CX-SYS-001", "CX-DISC-001"]
+depends = ["KN-PROTO-001", "KN-AUTH-001", "KN-SYS-001", "KN-DISC-001"]
 spec = "docs/02-architecture.md"
 accept = [
   "listen :0, one goroutine per connection, no shared mutable state on accept",
@@ -163,14 +163,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-EXEC-001"
+id = "KN-EXEC-001"
 title = "Executor: spawn, stream stdio, relay exit code"
 area = "EXEC"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "L"
-depends = ["CX-AGENT-001", "CX-PROTO-001"]
+depends = ["KN-AGENT-001", "KN-PROTO-001"]
 spec = "docs/02-architecture.md"
 accept = [
   "spawn cmd in agent home; stdin fed from connection, half-close propagates EOF",
@@ -180,30 +180,30 @@ accept = [
 ]
 
 [[item]]
-id = "CX-EXEC-010"
+id = "KN-EXEC-010"
 title = "SIGINT forwarding: Ctrl-C reaches the remote process, no orphan"
 area = "EXEC"
 milestone = "m1"
 status = "done"
 priority = "p1"
 size = "M"
-depends = ["CX-EXEC-001"]
+depends = ["KN-EXEC-001"]
 spec = "docs/03-protocol.md"
 accept = [
   "Ctrl-C on the client delivers SIGINT to the remote process via an out-of-band control byte before CloseWrite",
   "remote process is reaped; no orphan lingers after client exit",
-  "documented as the v0.1 90% answer ahead of full CONNEX2 signal framing",
+  "documented as the v0.1 90% answer ahead of full KNIT2 signal framing",
 ]
 
 [[item]]
-id = "CX-SCHED-001"
+id = "KN-SCHED-001"
 title = "Load-per-core scheduler with local candidate and --on"
 area = "SCHED"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "S"
-depends = ["CX-SYS-001"]
+depends = ["KN-SYS-001"]
 spec = "docs/adr/0006-load-per-core-scheduler.md"
 accept = [
   "score = load1 / cpu_count; lowest wins; local always a candidate at no network cost",
@@ -212,47 +212,47 @@ accept = [
 ]
 
 [[item]]
-id = "CX-CLIENT-001"
-title = "connex ls: parallel info probes, table + --json"
+id = "KN-CLIENT-001"
+title = "knit gauge: parallel info probes, table + --json"
 area = "CLIENT"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "M"
-depends = ["CX-XPORT-001", "CX-DISC-002", "CX-SYS-001"]
+depends = ["KN-XPORT-001", "KN-DISC-002", "KN-SYS-001"]
 spec = "docs/04-cli.md"
 accept = [
-  "probe all peers in parallel with a 250ms budget (CONNEX_TIMEOUT_MS override)",
+  "probe all peers in parallel with a 250ms budget (KNIT_TIMEOUT_MS override)",
   "unauthorized/timed-out peers excluded from results, not retried inline",
-  "human table plus stable --json array including a self entry",
+  "human table plus stable --json array including a self entry (command: gauge, alias ls)",
 ]
 
 [[item]]
-id = "CX-CLIENT-002"
-title = "connex run: schedule, local fallback, stream, exit relay"
+id = "KN-CLIENT-002"
+title = "knit run: schedule, local fallback, stream, exit relay"
 area = "CLIENT"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "L"
-depends = ["CX-SCHED-001", "CX-XPORT-001", "CX-EXEC-001", "CX-CLIENT-001"]
+depends = ["KN-SCHED-001", "KN-XPORT-001", "KN-EXEC-001", "KN-CLIENT-001"]
 spec = "docs/04-cli.md"
 accept = [
   "picks target via scheduler; local win prints nothing and execs locally",
-  "remote run prints exactly one dim 'connex -> name' line to stderr",
+  "remote run prints exactly one dim 'knit -> name' line to stderr",
   "stdin streamed, stdout/stderr demuxed, exit code becomes the client's exit code",
-  "connex-own failures use codes 124/126/127; command codes 0-125 pass through",
+  "knit-own failures use codes 124/126/127; command codes 0-125 pass through",
 ]
 
 [[item]]
-id = "CX-CLIENT-003"
-title = "connex each: fan-out with per-line prefix and aggregate exit"
+id = "KN-CLIENT-003"
+title = "knit each: fan-out with per-line prefix and aggregate exit"
 area = "CLIENT"
 milestone = "m1"
 status = "done"
 priority = "p1"
 size = "M"
-depends = ["CX-CLIENT-002"]
+depends = ["KN-CLIENT-002"]
 spec = "docs/04-cli.md"
 accept = [
   "runs the command on every authorized machine concurrently",
@@ -261,46 +261,46 @@ accept = [
 ]
 
 [[item]]
-id = "CX-CORE-001"
+id = "KN-CORE-001"
 title = "main(): command dispatch, usage, exit-code contract"
 area = "CORE"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "M"
-depends = ["CX-CLIENT-001", "CX-CLIENT-002", "CX-CLIENT-003", "CX-CLI-001"]
+depends = ["KN-CLIENT-001", "KN-CLIENT-002", "KN-CLIENT-003", "KN-CLI-001"]
 spec = "docs/04-cli.md"
 accept = [
   "dispatch up/down/ls/run/each/key/join; unknown/no command prints usage, exits 2",
-  "-- separates connex flags from the command; missing -- is a usage error",
-  "connex --version prints the ldflags-injected version",
+  "-- separates knit flags from the command; missing -- is a usage error",
+  "knit --version prints the ldflags-injected version",
 ]
 
 [[item]]
-id = "CX-CLI-001"
+id = "KN-CLI-001"
 title = "key and join commands"
 area = "CLI"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "S"
-depends = ["CX-AUTH-001"]
+depends = ["KN-AUTH-001"]
 spec = "docs/04-cli.md"
 accept = [
-  "connex key prints the 64-hex key",
-  "connex join <key> validates 64 hex chars and installs it at ~/.connex/key (0600)",
+  "knit key prints the 64-hex key",
+  "knit join <key> validates 64 hex chars and installs it at ~/.knit/key (0600)",
   "invalid key input is a clear, fix-naming error",
 ]
 
 [[item]]
-id = "CX-OPS-001"
+id = "KN-OPS-001"
 title = "Static, CGo-free build with version stamping"
 area = "OPS"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "S"
-depends = ["CX-CORE-001"]
+depends = ["KN-CORE-001"]
 spec = "docs/09-build-test-release.md"
 accept = [
   "CGO_ENABLED=0 go build -trimpath -ldflags '-s -w -X main.version=...' produces a static binary",
@@ -308,14 +308,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-TEST-001"
+id = "KN-TEST-001"
 title = "Test harness: unit, protocol, loopback e2e, race, fuzz"
 area = "TEST"
 milestone = "m1"
 status = "done"
 priority = "p0"
 size = "M"
-depends = ["CX-CORE-001"]
+depends = ["KN-CORE-001"]
 spec = "docs/09-build-test-release.md"
 accept = [
   "framing/HMAC/keyfile/scheduler/sysinfo unit tests with fixtures",
@@ -325,14 +325,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-TEST-002"
+id = "KN-TEST-002"
 title = "CI: fmt, vet, staticcheck, race, cross-build, roadmap check"
 area = "TEST"
 milestone = "m1"
 status = "done"
 priority = "p1"
 size = "S"
-depends = ["CX-TEST-001"]
+depends = ["KN-TEST-001"]
 spec = "docs/09-build-test-release.md"
 accept = [
   "GitHub Actions runs gofmt -l (empty), go vet, staticcheck, go test -race",
@@ -341,14 +341,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-TEST-003"
+id = "KN-TEST-003"
 title = "Two-machine manual matrix: Thunderbolt bridge + Wi-Fi"
 area = "TEST"
 milestone = "m1"
 status = "ready"
 priority = "p1"
 size = "S"
-depends = ["CX-CORE-001"]
+depends = ["KN-CORE-001"]
 spec = "docs/09-build-test-release.md"
 accept = [
   "documented checklist: pair, ls, run, each over a Thunderbolt bridge and over Wi-Fi",
@@ -358,14 +358,14 @@ accept = [
 notes = "Checklist committed at docs/manual-test.md; execution needs a second physical machine (Thunderbolt + Wi-Fi)."
 
 [[item]]
-id = "CX-DOC-001"
+id = "KN-DOC-001"
 title = "Repo-root README, SECURITY.md, quickstart"
 area = "DOC"
 milestone = "m1"
 status = "done"
 priority = "p1"
 size = "S"
-depends = ["CX-CORE-001"]
+depends = ["KN-CORE-001"]
 spec = "docs/README.md"
 accept = [
   "root README with the 60-second quickstart (up -d, key/join, run)",
@@ -376,45 +376,45 @@ accept = [
 # ──────────────────────────────── m2 items ────────────────────────────────
 
 [[item]]
-id = "CX-EXEC-020"
-title = "Robust signal forwarding (SIGINT/SIGTERM) groundwork for CONNEX2"
+id = "KN-EXEC-020"
+title = "Robust signal forwarding (SIGINT/SIGTERM) groundwork for KNIT2"
 area = "EXEC"
 milestone = "m2"
 status = "planned"
 priority = "p1"
 size = "M"
-depends = ["CX-EXEC-010"]
+depends = ["KN-EXEC-010"]
 spec = "docs/03-protocol.md"
 accept = [
   "SIGINT and SIGTERM both forwarded reliably; process-group aware",
-  "designs the client->server framing path that CONNEX2 will formalize",
+  "designs the client->server framing path that KNIT2 will formalize",
 ]
 
 [[item]]
-id = "CX-DISC-020"
-title = "--peer host:port and CONNEX_PEERS (works over Tailscale)"
+id = "KN-DISC-020"
+title = "--peer host:port and KNIT_PEERS (works over Tailscale)"
 area = "DISC"
 milestone = "m2"
 status = "planned"
 priority = "p1"
 size = "S"
-depends = ["CX-XPORT-001"]
+depends = ["KN-XPORT-001"]
 spec = "docs/08-security-model.md"
 accept = [
   "--peer host:port adds an explicit peer, skipping mDNS",
-  "CONNEX_PEERS comma-separated list honored",
+  "KNIT_PEERS comma-separated list honored",
   "verified across a Tailscale tailnet with multicast unavailable",
 ]
 
 [[item]]
-id = "CX-EXEC-030"
+id = "KN-EXEC-030"
 title = "run --dir / --sync: rsync-style working-directory sync"
 area = "EXEC"
 milestone = "m2"
 status = "planned"
 priority = "p1"
 size = "L"
-depends = ["CX-EXEC-001"]
+depends = ["KN-EXEC-001"]
 spec = "docs/02-architecture.md"
 accept = [
   "--dir sends a working directory to the target before exec",
@@ -423,14 +423,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-CLIENT-020"
+id = "KN-CLIENT-020"
 title = "ls marks the interface/link a peer was found on"
 area = "CLIENT"
 milestone = "m2"
 status = "planned"
 priority = "p2"
 size = "S"
-depends = ["CX-CLIENT-001", "CX-DISC-001"]
+depends = ["KN-CLIENT-001", "KN-DISC-001"]
 spec = "docs/04-cli.md"
 accept = [
   "ls shows the interface a peer resolved on (thunderbolt/ethernet/wifi)",
@@ -438,14 +438,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-OPS-020"
+id = "KN-OPS-020"
 title = "goreleaser release pipeline"
 area = "OPS"
 milestone = "m2"
 status = "planned"
 priority = "p1"
 size = "S"
-depends = ["CX-OPS-001"]
+depends = ["KN-OPS-001"]
 spec = "docs/09-build-test-release.md"
 accept = [
   "tag -> goreleaser builds four binaries + checksums + source archive",
@@ -453,31 +453,31 @@ accept = [
 ]
 
 [[item]]
-id = "CX-OPS-021"
-title = "Homebrew tap: brew install connex/tap/connex"
+id = "KN-OPS-021"
+title = "Homebrew tap: brew install knit/tap/knit"
 area = "OPS"
 milestone = "m2"
 status = "planned"
 priority = "p1"
 size = "S"
-depends = ["CX-OPS-020"]
+depends = ["KN-OPS-020"]
 spec = "docs/09-build-test-release.md"
 accept = [
-  "connex Homebrew tap formula pointing at releases",
-  "brew install connex/tap/connex documented as the headline install path",
+  "knit Homebrew tap formula pointing at releases",
+  "brew install knit/tap/knit documented as the headline install path",
 ]
 
 # ──────────────────────────────── m3 items ────────────────────────────────
 
 [[item]]
-id = "CX-SYS-030"
+id = "KN-SYS-030"
 title = "info grows mem_free_gb, gpu, accel"
 area = "SYS"
 milestone = "m3"
 status = "planned"
 priority = "p1"
 size = "M"
-depends = ["CX-SYS-001"]
+depends = ["KN-SYS-001"]
 spec = "docs/05-ai-workloads.md"
 accept = [
   "mem_free_gb from real allocatable memory (darwin + linux)",
@@ -486,14 +486,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-SCHED-030"
+id = "KN-SCHED-030"
 title = "run --mem N and --arch placement filters"
 area = "SCHED"
 milestone = "m3"
 status = "planned"
 priority = "p1"
 size = "S"
-depends = ["CX-SYS-030", "CX-SCHED-001"]
+depends = ["KN-SYS-030", "KN-SCHED-001"]
 spec = "docs/02-architecture.md"
 accept = [
   "--mem N filters candidates to those with enough mem_free_gb before scoring",
@@ -502,14 +502,14 @@ accept = [
 ]
 
 [[item]]
-id = "CX-CLIENT-030"
+id = "KN-CLIENT-030"
 title = "Link-speed awareness: prefer wired address, show link in ls"
 area = "CLIENT"
 milestone = "m3"
 status = "planned"
 priority = "p2"
 size = "M"
-depends = ["CX-CLIENT-020", "CX-DISC-001"]
+depends = ["KN-CLIENT-020", "KN-DISC-001"]
 spec = "docs/05-ai-workloads.md"
 accept = [
   "when a peer resolves on multiple interfaces, prefer the wired/bridge address",
@@ -518,32 +518,32 @@ accept = [
 ]
 
 [[item]]
-id = "CX-AI-030"
-title = "connex hostfile and connex mpirun sugar"
+id = "KN-AI-030"
+title = "knit hostfile and knit mpirun sugar"
 area = "AI"
 milestone = "m3"
 status = "planned"
 priority = "p2"
 size = "M"
-depends = ["CX-SYS-030", "CX-CLIENT-001"]
+depends = ["KN-SYS-030", "KN-CLIENT-001"]
 spec = "docs/05-ai-workloads.md"
 accept = [
-  "connex hostfile emits an MLX/torchrun-compatible host list from ls --json",
-  "connex mpirun -- <cmd> launches the ranked hosts with streamed logs",
+  "knit hostfile emits an MLX/torchrun-compatible host list from ls --json",
+  "knit mpirun -- <cmd> launches the ranked hosts with streamed logs",
   "one-command MLX distributed and torchrun --nnodes flows documented",
 ]
 
 # ──────────────────────────────── m4 items ────────────────────────────────
 
 [[item]]
-id = "CX-AUTH-040"
+id = "KN-AUTH-040"
 title = "TLS 1.3 with pinned self-signed certs"
 area = "AUTH"
 milestone = "m4"
 status = "planned"
 priority = "p0"
 size = "L"
-depends = ["CX-XPORT-001", "CX-AUTH-001"]
+depends = ["KN-XPORT-001", "KN-AUTH-001"]
 spec = "docs/adr/0008-tls-pinned-certs-v04.md"
 accept = [
   "each machine self-signs a cert on first run; join exchanges and pins fingerprints",
@@ -552,63 +552,63 @@ accept = [
 ]
 
 [[item]]
-id = "CX-AUTH-041"
+id = "KN-AUTH-041"
 title = "Key rotation UX"
 area = "AUTH"
 milestone = "m4"
 status = "planned"
 priority = "p2"
 size = "S"
-depends = ["CX-AUTH-001"]
+depends = ["KN-AUTH-001"]
 spec = "docs/08-security-model.md"
 accept = [
-  "connex rotate generates a new key and reports which machines must re-join",
+  "knit rotate generates a new key and reports which machines must re-join",
   "old key invalidated locally atomically",
 ]
 
 [[item]]
-id = "CX-OPS-040"
-title = "launchd/systemd install: connex up --forever"
+id = "KN-OPS-040"
+title = "launchd/systemd install: knit up --forever"
 area = "OPS"
 milestone = "m4"
 status = "planned"
 priority = "p1"
 size = "M"
-depends = ["CX-AGENT-001"]
+depends = ["KN-AGENT-001"]
 spec = "docs/02-architecture.md"
 accept = [
-  "connex up --forever installs a launchd (macOS) or systemd (linux) unit",
-  "agent survives reboot; connex down removes the unit",
+  "knit up --forever installs a launchd (macOS) or systemd (linux) unit",
+  "agent survives reboot; knit down removes the unit",
 ]
 
 [[item]]
-id = "CX-NET-040"
-title = "connex proxy: share a peer's network via local SOCKS5"
+id = "KN-NET-040"
+title = "knit proxy: share a peer's network via local SOCKS5"
 area = "NET"
 milestone = "m4"
 status = "blocked"
 priority = "p2"
 size = "L"
-depends = ["CX-AUTH-040"]
+depends = ["KN-AUTH-040"]
 spec = "docs/05-ai-workloads.md"
 accept = [
-  "connex proxy [--on NAME] opens a local SOCKS5 listener tunneling through a peer",
+  "knit proxy [--on NAME] opens a local SOCKS5 listener tunneling through a peer",
   "new dial host:port op reuses the run auth + streaming machinery",
-  "ships only after TLS (CX-AUTH-040); refuses to run over a plaintext link",
+  "ships only after TLS (KN-AUTH-040); refuses to run over a plaintext link",
 ]
-notes = "Blocked on CX-AUTH-040 by policy: proxied traffic is too sensitive for a plaintext link."
+notes = "Blocked on KN-AUTH-040 by policy: proxied traffic is too sensitive for a plaintext link."
 
 # ────────────────────────────── backlog items ─────────────────────────────
 
 [[item]]
-id = "CX-XPORT-050"
+id = "KN-XPORT-050"
 title = "Connection reuse: upgrade the info probe into the following run"
 area = "XPORT"
 milestone = "backlog"
 status = "deferred"
 priority = "p2"
 size = "M"
-depends = ["CX-XPORT-001", "CX-CLIENT-002"]
+depends = ["KN-XPORT-001", "KN-CLIENT-002"]
 spec = "docs/10-performance.md"
 accept = [
   "the winning peer's info-probe connection is reused for run, saving one dial+handshake",
@@ -617,14 +617,14 @@ accept = [
 notes = "Deferred: real but small win; v1 keeps one-op-per-connection for the one-page protocol."
 
 [[item]]
-id = "CX-CORE-050"
+id = "KN-CORE-050"
 title = "Windows client build (agent stays out of scope)"
 area = "CORE"
 milestone = "backlog"
 status = "deferred"
 priority = "p2"
 size = "M"
-depends = ["CX-CORE-001"]
+depends = ["KN-CORE-001"]
 spec = "docs/07-technology.md"
 accept = [
   "client subcommands build and run on Windows",

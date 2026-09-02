@@ -1,5 +1,5 @@
-// Package discovery finds connex agents over multicast-DNS on every interface,
-// and registers this machine's agent. A short client-side cache (CX-DISC-002)
+// Package discovery finds knit agents over multicast-DNS on every interface,
+// and registers this machine's agent. A short client-side cache (KN-DISC-002)
 // keeps back-to-back commands from each paying the browse latency; capacity is
 // never cached, only addresses. See docs/adr/0003-mdns-discovery-and-cache.md.
 package discovery
@@ -13,8 +13,8 @@ import (
 	"github.com/grandcat/zeroconf"
 )
 
-// ServiceType is the mDNS service connex agents advertise.
-const ServiceType = "_connex._tcp"
+// ServiceType is the mDNS service knit agents advertise.
+const ServiceType = "_knit._tcp"
 
 // Peer is a discovered agent: a name and where to reach it. Live capacity is
 // obtained separately via an info probe, never from mDNS.

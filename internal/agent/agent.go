@@ -1,4 +1,4 @@
-// Package agent is the server half of connex: it advertises this machine over
+// Package agent is the server half of knit: it advertises this machine over
 // mDNS, authenticates each connection with an HMAC over a fresh nonce, and
 // serves the info and run operations. See docs/02-architecture.md.
 package agent
@@ -17,10 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/oddurs/connex/internal/discovery"
-	"github.com/oddurs/connex/internal/keys"
-	"github.com/oddurs/connex/internal/proto"
-	"github.com/oddurs/connex/internal/sysinfo"
+	"github.com/oddurs/knit/internal/discovery"
+	"github.com/oddurs/knit/internal/keys"
+	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/sysinfo"
 )
 
 // authTimeout bounds how long a client has to complete the handshake.
@@ -53,8 +53,7 @@ func Serve() error {
 	}
 	defer server.Shutdown()
 
-	log.Printf("connex agent: %s advertising on port %d (%d cpus, %.1f GB)",
-		info.Name, port, info.CPUs, info.MemGB)
+	log.Printf("knit: %s up on port %d — %d cpus, %.1f GB", info.Name, port, info.CPUs, info.MemGB)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
@@ -102,7 +101,7 @@ func handleConn(conn net.Conn, key []byte) {
 	if !keys.Verify(key, nonce, req.HMAC) {
 		writeEnvelope(conn, proto.Envelope{
 			Code:  proto.CodeUnauthorized,
-			Error: "unauthorized: run `connex key` on a trusted machine and `connex join <key>` here",
+			Error: "unauthorized: run `knit key` on a trusted machine and `knit join <key>` here",
 		})
 		return
 	}

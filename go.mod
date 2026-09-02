@@ -1,4 +1,4 @@
-module github.com/oddurs/connex
+module github.com/oddurs/knit
 
 go 1.26
 

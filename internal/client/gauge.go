@@ -7,16 +7,17 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	"github.com/oddurs/connex/internal/proto"
-	"github.com/oddurs/connex/internal/sysinfo"
+	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/sysinfo"
 )
 
-// LS lists this machine and every reachable, authorized agent with live
-// capacity. It always browses fresh (not cached) so the picture is current.
-func LS(jsonOut bool) int {
+// Gauge lists this machine and every reachable, authorized machine with live
+// capacity. Gauge is the knitting word for a capacity measurement, which is what
+// this is. It always browses fresh (not cached) so the picture is current.
+func Gauge(jsonOut bool) int {
 	key, err := loadKey()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "connex:", err)
+		fmt.Fprintln(os.Stderr, "knit:", err)
 		return 1
 	}
 	cands := probePeers(key, true)

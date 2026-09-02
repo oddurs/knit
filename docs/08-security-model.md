@@ -1,6 +1,6 @@
 # Security model
 
-connex's `run` op is **arbitrary code execution on the target machine, by
+knit's `run` op is **arbitrary code execution on the target machine, by
 design.** There is no sandbox, no allowed-command list, no per-command
 authorization. That is a deliberate choice for a tool whose job is to run your
 commands on your other machines. It means authentication is not one feature among
@@ -15,15 +15,15 @@ scopes, or quotas. Pairing is the only deliberate trust act, and it is one
 command each way:
 
 ```
-connex key            # machine A prints 64 hex chars (the key)
-connex join <key>     # machine B installs it — now A and B are one cluster
+knit key            # machine A prints 64 hex chars (the key)
+knit join <key>     # machine B installs it — now A and B are one cluster
 ```
 
-- The key lives at `~/.connex/key`, mode `0600`, auto-generated with
-  `crypto/rand` on first use. `CONNEX_HOME` relocates it.
+- The key lives at `~/.knit/key`, mode `0600`, auto-generated with
+  `crypto/rand` on first use. `KNIT_HOME` relocates it.
 - To revoke a machine, rotate the key: generate a new one and re-`join` the
   machines you still trust. (Key rotation UX is a v0.4 nicety,
-  [`CX-AUTH-041`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md); the
+  [`KN-AUTH-041`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md); the
   mechanism — overwrite the keyfile — works today.)
 
 ## Authentication: HMAC over a per-connection nonce
@@ -47,7 +47,7 @@ Properties this gives us, and their limits:
 
 1. **No transport encryption.** Command text and output cross the link in the
    clear. On a Thunderbolt cable (a physical point-to-point wire) or a trusted
-   home LAN this is acceptable. On a hostile or shared network it is not. connex
+   home LAN this is acceptable. On a hostile or shared network it is not. knit
    prints no false assurance; the docs say plainly: trusted local links only.
 
 2. **No server authentication / MITM resistance.** Because only the client
@@ -61,7 +61,7 @@ Properties this gives us, and their limits:
 
 ## The fix: TLS 1.3 with pinned self-signed certs (v0.4)
 
-Planned in [`CX-AUTH-040`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md).
+Planned in [`KN-AUTH-040`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md).
 Each machine generates a self-signed certificate on first run. At `join` time the
 two machines exchange and pin each other's cert fingerprint (alongside the shared
 key). Thereafter connections run TLS 1.3:
@@ -74,8 +74,8 @@ key). Thereafter connections run TLS 1.3:
   happens inside the existing `join` flow.
 
 TLS 1.3 costs one extra handshake round-trip and near-zero streaming overhead with
-hardware AES. Only after TLS ships does the network-sharing `connex proxy`
-([`CX-NET-040`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md)) become
+hardware AES. Only after TLS ships does the network-sharing `knit proxy`
+([`KN-NET-040`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md)) become
 acceptable, because a SOCKS tunnel carries traffic too sensitive for a plaintext
 link.
 
@@ -83,24 +83,24 @@ link.
 
 - The agent binds an **ephemeral port** and advertises it only over link-local
   mDNS. It is not, and will never be, an internet-facing service.
-- connex will **not** implement internet rendezvous or hole-punching. Cross-site
+- knit will **not** implement internet rendezvous or hole-punching. Cross-site
   use rides an existing overlay: put both machines on a Tailscale tailnet and use
-  `--peer host:port` ([`CX-DISC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)).
+  `--peer host:port` ([`KN-DISC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)).
   That is the supported "beyond the LAN" story, and it inherits the tailnet's
   encryption and identity.
-- Never expose the agent port through a router/firewall. The docs and `connex up`
+- Never expose the agent port through a router/firewall. The docs and `knit up`
   banner say so.
 
 ## Denial of service
 
 Out of scope for the threat model — a trusted peer that floods you is a trust
 problem, not an auth problem, and the answer is to stop trusting it (rotate the
-key). connex does cap frame size (1 MiB) and probe timeouts (250 ms) so a
+key). knit does cap frame size (1 MiB) and probe timeouts (250 ms) so a
 malformed or slow peer cannot wedge a client, but it does not rate-limit a
 correctly-authenticated peer.
 
 ## Reporting
 
 Pre-1.0, security issues go to the maintainer privately (see repo root
-`SECURITY.md`, [`CX-DOC-001`](../roadmaps/milestones/m1-v0.1-fabric.md)). No bounty
+`SECURITY.md`, [`KN-DOC-001`](../roadmaps/milestones/m1-v0.1-fabric.md)). No bounty
 program at this stage; honest disclosure and a fast fix.

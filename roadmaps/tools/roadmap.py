@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""roadmap.py — validate and render the connex work-item registry.
+"""roadmap.py — validate and render the knit work-item registry.
 
 Stdlib only (Python 3.11+ for tomllib). Source of truth: roadmaps/registry.toml.
 
@@ -22,7 +22,7 @@ STATUSES = {"planned","ready","in-progress","review","done","blocked","deferred"
 DONE = {"done"}
 PRIORITIES = {"p0","p1","p2"}
 SIZES = {"S","M","L","XL"}
-ID_RE_MSG = "CX-<AREA>-<NNN> with a 3+ digit number"
+ID_RE_MSG = "KN-<AREA>-<NNN> with a 3+ digit number"
 
 
 def load():
@@ -32,7 +32,7 @@ def load():
 
 def parse_id(iid: str):
     parts = iid.split("-")
-    if len(parts) != 3 or parts[0] != "CX":
+    if len(parts) != 3 or parts[0] != "KN":
         return None
     _, area, num = parts
     if area not in AREAS or not (num.isdigit() and len(num) >= 3):
@@ -150,7 +150,7 @@ def render(data, by_id, ms):
     lines = []
     W = lines.append
 
-    W("# connex — plan status")
+    W("# knit — plan status")
     W("")
     W("> Generated from `registry.toml` by `roadmaps/tools/roadmap.py render`.")
     W("> Do not hand-edit — change the registry and re-render.")

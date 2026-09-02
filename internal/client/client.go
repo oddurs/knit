@@ -1,4 +1,4 @@
-// Package client is the client half of connex: discover agents, probe their
+// Package client is the client half of knit: discover agents, probe their
 // live capacity, schedule a command, and stream its stdio. See docs/04-cli.md.
 package client
 
@@ -7,16 +7,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/oddurs/connex/internal/discovery"
-	"github.com/oddurs/connex/internal/keys"
-	"github.com/oddurs/connex/internal/proto"
-	"github.com/oddurs/connex/internal/scheduler"
-	"github.com/oddurs/connex/internal/sysinfo"
-	"github.com/oddurs/connex/internal/transport"
+	"github.com/oddurs/knit/internal/discovery"
+	"github.com/oddurs/knit/internal/keys"
+	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/scheduler"
+	"github.com/oddurs/knit/internal/sysinfo"
+	"github.com/oddurs/knit/internal/transport"
 )
 
-// connex's own exit codes, disjoint from a command's 0-125 range so scripts can
-// tell "the command failed" from "connex failed". See docs/04-cli.md.
+// knit's own exit codes, disjoint from a command's 0-125 range so scripts can
+// tell "the command failed" from "knit failed". See docs/04-cli.md.
 const (
 	ExitUsage        = 2
 	ExitDisconnected = 124
@@ -31,7 +31,7 @@ const (
 )
 
 func probeTimeout() time.Duration {
-	if v := os.Getenv("CONNEX_TIMEOUT_MS"); v != "" {
+	if v := os.Getenv("KNIT_TIMEOUT_MS"); v != "" {
 		if ms, err := strconv.Atoi(v); err == nil && ms > 0 {
 			return time.Duration(ms) * time.Millisecond
 		}

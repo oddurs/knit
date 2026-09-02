@@ -3,7 +3,7 @@ package scheduler
 import (
 	"testing"
 
-	"github.com/oddurs/connex/internal/proto"
+	"github.com/oddurs/knit/internal/proto"
 )
 
 func cand(name string, cpus int, load float64, local bool) Candidate {

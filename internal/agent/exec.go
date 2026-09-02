@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/oddurs/connex/internal/proto"
+	"github.com/oddurs/knit/internal/proto"
 )
 
 // pumpBuf is the reusable copy buffer size for the output pumps.
@@ -26,7 +26,7 @@ var pumpPool = sync.Pool{New: func() any { b := make([]byte, pumpBufSize); retur
 // If the client disappears before the process exits (e.g. Ctrl-C closes the
 // connection), a frame write fails and we terminate the process group so no
 // orphan lingers. This is the v0.1 90% answer to signals; full framing is
-// CONNEX2 (CX-EXEC-020). See docs/03-protocol.md.
+// KNIT2 (KN-EXEC-020). See docs/03-protocol.md.
 func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
 	if len(req.Cmd) == 0 {
 		writeEnvelope(conn, proto.Envelope{Code: proto.CodeEmptyCmd, Error: "empty command"})
@@ -79,7 +79,7 @@ func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
 	// CloseWrite) ends the copy with no error and we simply propagate EOF. An
 	// aborted connection (client Ctrl-C sends an RST) ends it with an error, so
 	// we reap the process group — this is how Ctrl-C reaches a silent remote
-	// process without a framed client->server channel (CONNEX2 formalizes it).
+	// process without a framed client->server channel (KNIT2 formalizes it).
 	go func() {
 		_, cerr := io.Copy(stdin, br)
 		_ = stdin.Close()

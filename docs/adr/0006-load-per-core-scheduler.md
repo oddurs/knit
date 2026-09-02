@@ -3,7 +3,7 @@ Status: Accepted
 Date: 2026-09-01
 
 ## Context
-connex must pick a machine for `run` with no config and no user thought in the
+knit must pick a machine for `run` with no config and no user thought in the
 common case, while staying seamless: if the local machine is the best choice, the
 command should just run locally with nothing printed.
 

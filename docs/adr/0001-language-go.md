@@ -3,13 +3,13 @@ Status: Accepted
 Date: 2026-09-01
 
 ## Context
-connex is a single-binary CLI that must cross-compile to macOS and Linux on arm64
+knit is a single-binary CLI that must cross-compile to macOS and Linux on arm64
 and amd64, move bytes between sockets and pipes with a few concurrent workers, do
 HMAC and random-nonce auth, and be readable in an afternoon. The bottleneck in
 production is a physical link (Thunderbolt/Ethernet/Wi-Fi), not CPU.
 
 ## Decision
-Implement connex in Go.
+Implement knit in Go.
 
 ## Alternatives considered
 - **Rust** — marginally lower tail latency, no GC, stronger memory guarantees. Lost
@@ -17,7 +17,7 @@ Implement connex in Go.
   GC never runs on it, erasing Rust's main advantage for this workload; and the
   "read in an afternoon" test favors Go's smaller surface.
 - **C** — smallest binary, but hand-rolled concurrency and crypto plumbing is exactly
-  the complexity connex exists to avoid.
+  the complexity knit exists to avoid.
 - **Zig** — attractive and fast, but a smaller ecosystem for mDNS and a less
   familiar read for most contributors.
 - **A scripting language (Python/Node)** — fails the single-static-binary and

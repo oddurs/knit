@@ -1,5 +1,5 @@
-// Package paths resolves the ~/.connex directory and the files inside it.
-// CONNEX_HOME overrides the location (used by tests and power users).
+// Package paths resolves the ~/.knit directory and the files inside it.
+// KNIT_HOME overrides the location (used by tests and power users).
 package paths
 
 import (
@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 )
 
-// Dir returns the connex home directory, creating it 0700 if missing.
+// Dir returns the knit home directory, creating it 0700 if missing.
 func Dir() (string, error) {
-	dir := os.Getenv("CONNEX_HOME")
+	dir := os.Getenv("KNIT_HOME")
 	if dir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		dir = filepath.Join(home, ".connex")
+		dir = filepath.Join(home, ".knit")
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err

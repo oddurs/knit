@@ -8,7 +8,7 @@ or a binary that needs libc, means install friction, version skew, and platform
 packaging pain.
 
 ## Decision
-Ship exactly one binary. `connex up` runs the agent; every other subcommand is the
+Ship exactly one binary. `knit up` runs the agent; every other subcommand is the
 client; a machine is routinely both. Build with `CGO_ENABLED=0` so the result is a
 fully static executable with no libc dependency; OS-specific sysinfo uses `/proc`
 and `sysctl` via `os/exec`, never CGo.
