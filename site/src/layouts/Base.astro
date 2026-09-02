@@ -31,5 +31,23 @@ const inDocs = here.startsWith(base + 'docs');
         Curious how it is built? The <a href="https://github.com/oddurs/knit/tree/main/docs">engineering docs</a> are in the repository.
       </footer>
     </div>
+    <script is:inline>
+      // Copy buttons on code blocks that declare a language (```sh, ```json).
+      // Transcripts and plain blocks are left alone.
+      for (const code of document.querySelectorAll('pre[data-language]:not([data-language="plaintext"]) > code')) {
+        const b = document.createElement('button');
+        b.className = 'copy';
+        b.type = 'button';
+        b.textContent = 'Copy';
+        b.setAttribute('aria-label', 'Copy code');
+        b.addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(code.textContent); } catch { return; }
+          b.textContent = 'Copied';
+          b.dataset.done = '';
+          setTimeout(() => { b.textContent = 'Copy'; delete b.dataset.done; }, 1500);
+        });
+        code.parentElement.appendChild(b);
+      }
+    </script>
   </body>
 </html>

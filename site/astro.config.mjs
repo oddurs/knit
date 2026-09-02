@@ -11,6 +11,13 @@ export default defineConfig({
   preview: { port: 1212 },
   build: { format: 'directory' },
   markdown: {
-    syntaxHighlight: false, // one monochrome code block everywhere
+    // GitHub's own themes, so highlighting reads exactly like GFM. Colors
+    // follow the OS via light-dark(); the block's background stays the design
+    // system's, so the highlighter's is dropped.
+    shikiConfig: {
+      themes: { light: 'github-light', dark: 'github-dark' },
+      defaultColor: 'light-dark()',
+      transformers: [{ pre(node) { delete node.properties.style; } }],
+    },
   },
 });
