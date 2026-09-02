@@ -32,7 +32,7 @@ goal = "Free-memory and accelerator reporting, memory-aware placement, MLX/torch
 id = "m4"
 version = "v0.4"
 name = "encrypted, persistent, shareable"
-status = "planned"
+status = "done"
 goal = "TLS with pinned certs, reboot-persistent agents, and network sharing via SOCKS."
 
 [[milestone]]
@@ -538,41 +538,43 @@ notes = "Re-cut from `knit hostfile` + `knit mpirun`: the CLI is seven commands 
 
 [[item]]
 id = "KN-AUTH-040"
-title = "TLS 1.3 with pinned self-signed certs"
+title = "TLS 1.3 with a key-bound handshake"
 area = "AUTH"
 milestone = "m4"
-status = "planned"
+status = "done"
 priority = "p0"
 size = "L"
 depends = ["KN-XPORT-001", "KN-AUTH-001"]
-spec = "docs/adr/0008-tls-pinned-certs-v04.md"
+spec = "docs/adr/0009-tls-key-bound-handshake.md"
 accept = [
-  "each machine self-signs a cert on first run; join exchanges and pins fingerprints",
-  "connections run TLS 1.3 with mutual pinned verification, still zero-config",
-  "closes the plaintext-LAN confidentiality, integrity, and server-auth gaps",
+  "every connection is TLS 1.3 with an ephemeral self-signed cert; no cert state on disk",
+  "client and server each prove the shared key bound to the TLS channel (exporter); an impostor agent or a relay is refused",
+  "closes the plaintext-LAN confidentiality, integrity, and server-auth gaps with zero new steps",
 ]
+notes = "Re-cut from pinned certificates (ADR-0008): join has no channel to exchange fingerprints, and the shared key already authenticates the channel. See ADR-0009."
 
 [[item]]
 id = "KN-AUTH-041"
-title = "Key rotation UX"
+title = "Key rotation UX: knit key --rotate"
 area = "AUTH"
 milestone = "m4"
-status = "planned"
+status = "done"
 priority = "p2"
 size = "S"
 depends = ["KN-AUTH-001"]
 spec = "docs/08-security-model.md"
 accept = [
-  "knit rotate generates a new key and reports which machines must re-join",
-  "old key invalidated locally atomically",
+  "knit key --rotate generates a new key and reports which machines must re-join",
+  "old key invalidated locally atomically; the running agent uses the new key without restart",
 ]
+notes = "A flag on `key` rather than a `rotate` command: the CLI stays at seven commands."
 
 [[item]]
 id = "KN-OPS-040"
 title = "launchd/systemd install: knit up --forever"
 area = "OPS"
 milestone = "m4"
-status = "planned"
+status = "done"
 priority = "p1"
 size = "M"
 depends = ["KN-AGENT-001"]
@@ -587,7 +589,7 @@ id = "KN-NET-040"
 title = "knit proxy: share a peer's network via local SOCKS5"
 area = "NET"
 milestone = "m4"
-status = "blocked"
+status = "deferred"
 priority = "p2"
 size = "L"
 depends = ["KN-AUTH-040"]
@@ -597,7 +599,7 @@ accept = [
   "new dial host:port op reuses the run auth + streaming machinery",
   "ships only after TLS (KN-AUTH-040); refuses to run over a plaintext link",
 ]
-notes = "Blocked on KN-AUTH-040 by policy: proxied traffic is too sensitive for a plaintext link."
+notes = "Deferred 2026-09-02 with TLS in place: it would be the eighth command (docs/04-cli.md: seven by design), and its use cases are already served — a Tailscale exit node for the laptop-on-hotel-Wi-Fi case, macOS Internet Sharing for a Thunderbolt-only machine. Revisit only if real usage asks for it."
 
 # ────────────────────────────── backlog items ─────────────────────────────
 
