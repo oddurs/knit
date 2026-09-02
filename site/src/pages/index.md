@@ -1,7 +1,7 @@
 ---
 layout: ../layouts/Base.astro
 ---
-# knit
+# 🧶 knit
 
 Share hardware with the machines around you. One binary, no configuration,
 and commands that behave exactly as if they ran here.

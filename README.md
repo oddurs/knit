@@ -1,4 +1,4 @@
-# knit
+# 🧶 knit
 
 **Share compute across your machines with zero config.** One static binary. Run
 `knit up` on each machine and it becomes discoverable capacity. Run `knit run
