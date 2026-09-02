@@ -35,9 +35,10 @@ server → client:   {"ok":true}\n                       (or {"ok":false,"error"
   is useless because the nonce is single-use.
 - Verification is constant-time. A failed verification gets exactly one
   `{"ok":false,...}` line with code `unauthorized`, then the connection closes.
-- The client sends `"v":1`. If a future agent only speaks a higher version it
-  replies `{"ok":false,"code":"version"}` and closes; the client prints a
-  fix-naming error. Unknown JSON fields are ignored in both directions, so minor
+- The client sends its protocol version in `"v"` (currently `2`). The agent
+  serves the highest run convention both sides share: a `v>=2` client gets the
+  framed client→server stream (KNIT2, below); a `v<=1` client gets the legacy raw
+  stdin stream. Unknown JSON fields are ignored in both directions, so minor
   additions never break older peers.
 
 Ops: `info` and `run`.
@@ -58,21 +59,31 @@ scheduler, and — because it requires a valid HMAC — as the authentication pr
 
 ## op = run
 
-After `{"ok":true}`:
-
-- **client → server**: raw stdin bytes, unframed. The client half-closes the TCP
-  write side (`CloseWrite`) on stdin EOF; the agent propagates EOF to the process.
-- **server → client**: length-prefixed frames.
+After `{"ok":true}` both directions carry length-prefixed frames (KNIT2, `v>=2`).
+The two directions use disjoint type numbers so they never collide in a log.
 
 ```
 frame = [type:1][len:4 big-endian][payload:len]
 
-type 1  stdout chunk
-type 2  stderr chunk
-type 3  exit      payload = 4-byte big-endian exit code; connection closes after
-type 4  signal    (reserved, KNIT2 — client→server needs both directions framed)
-type 5  winsize   (reserved, KNIT2 — TTY support)
+server → client
+  type 1   stdout chunk
+  type 2   stderr chunk
+  type 3   exit       payload = 4-byte big-endian exit code; connection closes after
+
+client → server
+  type 10  stdin chunk
+  type 11  stdin EOF  payload empty; the agent closes the process's stdin
+  type 12  signal     payload = 1 byte signal number (2 = SIGINT, 15 = SIGTERM)
+  type 13  winsize    reserved for TTY support
 ```
+
+Framing the client direction is what lets Ctrl-C forward the *actual* signal to
+the remote process — which can trap it and exit with its own code — and makes a
+piped stdin's EOF (`type 11`) unambiguous, distinct from the client vanishing.
+
+**Legacy (`v<=1`):** the client sends raw, unframed stdin and half-closes the TCP
+write side on EOF; the agent still serves this for older clients. Signals cannot
+be distinguished on this path.
 
 - `len` is capped at 1 MiB (`maxFrame`); a larger declared length is a protocol
   violation and the receiver closes. Chunks are whatever the reader produced,
@@ -81,11 +92,12 @@ type 5  winsize   (reserved, KNIT2 — TTY support)
 - The agent writes each frame with a single vectored write (header + payload) to
   avoid a syscall per part, and reuses payload buffers from a pool.
 - **Termination:** a clean run ends with an `exit` frame carrying the process's
-  code, which becomes the client's exit code. A connection that drops *before* the
-  exit frame is an error: the client exits non-zero (code `disconnected`) and the
-  agent reaps the process when its stdio closes. There is no ambiguity between
-  "exited 0" and "link died," because 0 only ever arrives inside an explicit exit
-  frame.
+  code, which becomes the client's exit code. If the client's frame stream ends
+  before it sent a stdin-EOF — the connection dropped, Ctrl-C was a hard kill —
+  the agent reaps the whole process group, so nothing is orphaned. A client that
+  loses the link before the exit frame exits non-zero (code `disconnected`).
+  There is no ambiguity between "exited 0" and "link died," because 0 only ever
+  arrives inside an explicit exit frame.
 
 ## Error codes
 
@@ -100,15 +112,14 @@ CLI can name the fix (principle: errors name the fix, not just the failure).
 | `spawn`        | process failed to start (e.g. not found)  | the underlying exec error, verbatim |
 | `internal`     | agent-side unexpected error               | check `~/.knit/agent.log` on the target |
 
-## Forward compatibility: KNIT2 (sketch, not v1)
+## Versioning
 
-Signals and TTYs both require the **client→server** direction to be framed too, so
-they are gated behind a version bump rather than bolted onto KNIT1. KNIT2
-keeps the handshake identical and changes only the post-`ok` run phase: both
-directions carry frames, adding `signal` (SIGINT/SIGTERM/SIGWINCH) and `winsize`.
-v0.1 gets the 90% win — Ctrl-C reaching the remote process — by sending a single
-out-of-band SIGINT as a one-byte control before `CloseWrite`, documented in
-[`KN-EXEC-010`](../roadmaps/milestones/m1-v0.1-fabric.md); full framing waits.
+The handshake is identical across versions; only the post-`ok` run phase differs.
+`v2` (KNIT2) frames the client→server direction, adding stdin/stdin-EOF/signal
+frames as above ([`KN-EXEC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)). A
+future `v3` would add `winsize` (type 13) and a TTY mode for interactive
+programs. The agent serves the highest version the client also speaks, so mixed
+knit versions across machines interoperate during an upgrade.
 
 ## Security summary
 

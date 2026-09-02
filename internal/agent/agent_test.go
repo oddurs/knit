@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"io"
 	"net"
 	"strings"
 	"testing"
@@ -49,8 +48,9 @@ func TestRunStreamsStdoutStderrAndExit(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer sess.Close()
-	if tc, ok := sess.Conn.(*net.TCPConn); ok {
-		tc.CloseWrite()
+	// V2: no stdin, so send an explicit stdin-EOF frame.
+	if err := proto.NewFrameWriter(sess.Conn).Write(proto.FrameStdinEOF, nil); err != nil {
+		t.Fatal(err)
 	}
 
 	var out, errb strings.Builder
@@ -87,8 +87,9 @@ func TestRunStdinRoundTrip(t *testing.T) {
 	defer sess.Close()
 
 	go func() {
-		io.WriteString(sess.Conn, "roundtrip payload\n")
-		sess.Conn.(*net.TCPConn).CloseWrite()
+		fw := proto.NewFrameWriter(sess.Conn)
+		fw.Write(proto.FrameStdin, []byte("roundtrip payload\n"))
+		fw.Write(proto.FrameStdinEOF, nil)
 	}()
 
 	var out strings.Builder

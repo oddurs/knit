@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"strings"
 	"sync"
@@ -67,9 +66,8 @@ func eachOne(c scheduler.Candidate, key []byte, cmd []string, mu *sync.Mutex) in
 		return ExitUnreachable
 	}
 	defer sess.Close()
-	if tc, ok := sess.Conn.(*net.TCPConn); ok {
-		_ = tc.CloseWrite() // each sends no stdin
-	}
+	// each sends no stdin; an explicit EOF frame tells the agent so.
+	_ = proto.NewFrameWriter(sess.Conn).Write(proto.FrameStdinEOF, nil)
 
 	prefix := "[" + c.Name + "] "
 	for {

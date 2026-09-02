@@ -3,7 +3,7 @@
 > Generated from `registry.toml` by `roadmaps/tools/roadmap.py render`.
 > Do not hand-edit — change the registry and re-render.
 
-**36 items** across **4 milestones** plus backlog · **21 done**
+**36 items** across **4 milestones** plus backlog · **22 done**
 
 ## Rollup
 
@@ -11,8 +11,8 @@
 | ------ | ----: | - | -------- | ----: |
 | ready | 1 |   | p0 | 15 |
 | review | 2 |   | p1 | 14 |
-| done | 21 |   | p2 | 7 |
-| planned | 9 |   |  |  |
+| done | 22 |   | p2 | 7 |
+| planned | 8 |   |  |  |
 | blocked | 1 |   |  |  |
 | deferred | 2 |   |  |  |
 
@@ -52,12 +52,12 @@
 *Signals, explicit peers, working-dir sync, and a real install path.*
 
 ```
-████████░░░░░░░░░░░░░░░░  2/6
+████████████░░░░░░░░░░░░  3/6
 ```
 
 | # | ID | Item | Status | Pri | Sz | Depends |
 | -: | -- | ---- | ------ | --- | -- | ------- |
-| 10 | `KN-EXEC-020` | Robust signal forwarding (SIGINT/SIGTERM) groundwork for KNIT2 | planned | p1 | M | KN-EXEC-010 |
+| 10 | `KN-EXEC-020` | Robust signal forwarding (SIGINT/SIGTERM) groundwork for KNIT2 | done | p1 | M | KN-EXEC-010 |
 | 11 | `KN-EXEC-030` | run --dir / --sync: rsync-style working-directory sync | planned | p1 | L | KN-EXEC-001 |
 | 22 | `KN-CLIENT-020` | ls marks the interface/link a peer was found on | done | p2 | S | KN-CLIENT-001, KN-DISC-001 |
 | 26 | `KN-DISC-020` | --peer host:port and KNIT_PEERS (works over Tailscale) | done | p1 | S | KN-XPORT-001 |

@@ -11,7 +11,7 @@
 package proto
 
 // Version is the protocol version the client advertises in Request.V.
-const Version = 1
+const Version = 2
 
 // Magic is the greeting token prefixing the server nonce line.
 const Magic = "KNIT1"
@@ -22,12 +22,19 @@ const (
 	OpRun  = "run"
 )
 
-// Frame types for the server->client stream during op "run".
+// Frame types. The server->client stream uses 1-3; the client->server stream
+// (KNIT2, protocol V2) uses 10-12 so the two directions never collide in a log.
 const (
+	// server -> client
 	FrameStdout byte = 1
 	FrameStderr byte = 2
 	FrameExit   byte = 3
-	// 4 (signal) and 5 (winsize) are reserved for KNIT2.
+
+	// client -> server (V2)
+	FrameStdin    byte = 10
+	FrameStdinEOF byte = 11
+	FrameSignal   byte = 12 // payload: 1 byte signal number (2=SIGINT, 15=SIGTERM)
+	// 13 (winsize) is reserved.
 )
 
 // MaxFrame is the largest payload a single frame may carry.

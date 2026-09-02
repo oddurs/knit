@@ -2,8 +2,6 @@ package client
 
 import (
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -32,7 +30,6 @@ func Run(onName string, cmd []string) int {
 
 	peers := probePeers(key, false)
 
-	// Pin with --on.
 	if onName != "" {
 		if c, ok := scheduler.ByName(peers, onName); ok {
 			return runRemote(c, key, cmd)
@@ -53,8 +50,7 @@ func Run(onName string, cmd []string) int {
 }
 
 // runLocal executes the command in this process's environment, inheriting
-// stdio, and returns its exit code. knit prints nothing — the invisible
-// fallback.
+// stdio, and returns its exit code. knit prints nothing — the invisible fallback.
 func runLocal(cmd []string) int {
 	c := exec.Command(cmd[0], cmd[1:]...)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
@@ -68,7 +64,10 @@ func runLocal(cmd []string) int {
 	return 0
 }
 
-// runRemote dials the target, streams stdio, and relays the exit code.
+// runRemote dials the target and streams stdio over the KNIT2 framed protocol:
+// stdin as frames with an explicit EOF, Ctrl-C/SIGTERM forwarded as signal
+// frames, and stdout/stderr/exit coming back. The command's exit code becomes
+// this process's exit code.
 func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 	sess, err := transport.Open(c.HostPortOrEmpty(), key, proto.Request{Op: proto.OpRun, Cmd: cmd}, dialTimeout)
 	if err != nil {
@@ -83,26 +82,36 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 
 	fmt.Fprintf(os.Stderr, "%s\n", dim("knit → "+c.Name))
 
-	// Forward stdin; half-close on EOF so the remote process sees EOF.
+	fw := proto.NewFrameWriter(sess.Conn)
+
+	// Forward stdin as frames, then an explicit EOF frame.
 	go func() {
-		_, _ = io.Copy(sess.Conn, os.Stdin)
-		if tc, ok := sess.Conn.(*net.TCPConn); ok {
-			_ = tc.CloseWrite()
+		buf := make([]byte, 32*1024)
+		for {
+			n, rerr := os.Stdin.Read(buf)
+			if n > 0 {
+				if fw.Write(proto.FrameStdin, buf[:n]) != nil {
+					return
+				}
+			}
+			if rerr != nil {
+				break
+			}
 		}
+		_ = fw.Write(proto.FrameStdinEOF, nil)
 	}()
 
-	// Ctrl-C: abort the connection with an RST (linger 0) rather than a clean
-	// FIN. The agent sees the resulting stdin read error and reaps the remote
-	// process group, so nothing is orphaned — even a silent process. A normal
-	// stdin EOF uses CloseWrite above, which the agent reads as a clean EOF.
+	// Forward SIGINT/SIGTERM to the remote process as signal frames.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		<-sig
-		if tc, ok := sess.Conn.(*net.TCPConn); ok {
-			_ = tc.SetLinger(0)
+		for s := range sig {
+			n := byte(int(syscall.SIGINT))
+			if s == syscall.SIGTERM {
+				n = byte(int(syscall.SIGTERM))
+			}
+			_ = fw.Write(proto.FrameSignal, []byte{n})
 		}
-		sess.Conn.Close()
 	}()
 
 	for {
