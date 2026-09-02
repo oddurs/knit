@@ -88,9 +88,10 @@ Full design: [`docs/`](docs/). The staged plan and its validator: [`roadmaps/`](
 
 ## Security
 
-Trusted local links only. v1 authenticates but does not yet encrypt the link, so
-use it on a Thunderbolt cable or a home LAN, not a hostile network. Transport
-encryption (TLS 1.3 with pinned certs) is planned for v0.4. See
+Every connection is TLS 1.3, and both ends prove the shared key on that specific
+connection, so a machine without the key, or one in the middle, is refused.
+Holding the key is a shell on every machine in the fabric; treat it like an SSH
+private key and rotate it with `knit key --rotate` to revoke. See
 [`docs/08-security-model.md`](docs/08-security-model.md) and [`SECURITY.md`](SECURITY.md).
 
 ## Status

@@ -43,8 +43,9 @@ A binary built this way reports `knit dev` for its version; that is expected.
 knit --version
 ```
 
-Every machine in a fabric should run the same version. Mixed versions work
-across a minor release, and an agent that is too old to understand a newer
-client says so plainly instead of misbehaving.
+Every machine in a fabric should run the same version. v0.4 encrypted every
+connection, so a v0.4 client and a v0.3 agent cannot talk; the client names
+the older machine and says to upgrade it. Within a generation, mixed minor
+versions work.
 
 Next: [two machines in two minutes](quickstart.md).

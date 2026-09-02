@@ -5,11 +5,12 @@ order: 7
 # Keep the agent running
 
 ```sh
-knit up -d      # start in the background
-knit down       # stop it
+knit up -d          # start in the background, until you stop it or log out
+knit up --forever   # start at every login, restart if it stops
+knit down           # stop it, either way
 ```
 
-## Foreground or background
+## Foreground, background, or forever
 
 `knit up` alone runs the agent in your terminal and logs to it; Ctrl-C stops
 it. `knit up -d` detaches: the agent keeps running after the terminal closes,
@@ -31,11 +32,22 @@ unless the command brought its own directory. It has no configuration.
 macOS may ask whether to allow `knit` to accept incoming connections. Allow it;
 that is the agent listening.
 
-## After a reboot
+## Surviving reboots: --forever
 
-The agent does not restart itself yet. Run `knit up -d` again, or add it to
-whatever starts things on login. A built-in `knit up --forever` that installs a
-launchd or systemd unit is planned.
+```sh
+knit up --forever
+```
+
+installs a launchd agent (macOS, `~/Library/LaunchAgents/io.knit.agent.plist`)
+or a systemd user unit (Linux, `~/.config/systemd/user/knit.service`) that
+starts the agent at login, restarts it if it ever stops, and logs to the same
+`~/.knit/agent.log`. A detached agent that was already running is replaced,
+so there is one agent, not two.
+
+`knit down` stops it and removes the unit; `knit up -d` while the unit is
+installed just tells you so. On Linux, knit also asks `loginctl` to keep your
+user session alive across logouts so the agent runs at boot without a login;
+that may require your password once, and is best effort.
 
 ## Upgrading
 

@@ -6,16 +6,19 @@ order: 1
 
 Seven commands. There is no configuration file and no eighth command.
 
-## knit up [-d]
+## knit up [-d | --forever]
 
-Start sharing this machine. Without `-d` the agent runs in the foreground until
-Ctrl-C; with `-d` it detaches, logs to `~/.knit/agent.log`, and can be stopped
-with `knit down`. Already running: prints the pid and exits 0. Creates the
-cluster key on first use if there is none.
+Start sharing this machine. Without a flag the agent runs in the foreground
+until Ctrl-C. With `-d` it detaches, logs to `~/.knit/agent.log`, and runs
+until `knit down` or logout. With `--forever` it is installed as a launchd
+agent or systemd user unit that starts at login and restarts if it stops.
+Already running: says so and exits 0. Creates the cluster key on first use if
+there is none.
 
 ## knit down
 
-Stop the background agent. Not running: says so and exits 0.
+Stop the agent however it was started: removes the `--forever` unit if one is
+installed, else signals the detached agent. Not running: says so and exits 0.
 
 ## knit gauge [--json] [--peer HOST[:PORT]]...
 
@@ -49,9 +52,12 @@ Run a command on every machine at once, this one included, each line prefixed
 `[name] `. Exits with the highest exit code seen. Sets the rank environment on
 every process; see [Environment variables](environment.md).
 
-## knit key
+## knit key [--rotate]
 
 Print this machine's cluster key as 64 hex characters, creating it if needed.
+`--rotate` replaces it with a fresh key atomically, prints the new key, and
+names the machines that were reachable under the old one and must now
+`knit join` it. The local agent uses the new key from its next connection.
 
 ## knit join KEY
 

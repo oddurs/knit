@@ -5,20 +5,23 @@
 knit's `run` operation is **arbitrary code execution on the target machine, by
 design.** Machines that hold the same 32-byte cluster key trust each other
 completely. Holding the key is authorization to run anything as the agent's user.
-Authentication is therefore the entire security boundary. The full model, the
-accepted v1 gaps, and the TLS plan are in
-[`docs/08-security-model.md`](docs/08-security-model.md).
+Authentication is therefore the entire security boundary. The full model and
+its accepted gaps are in [`docs/08-security-model.md`](docs/08-security-model.md).
 
-## What v1 defends, and what it does not
+## What knit defends, and what it does not
 
-- **Defends:** replay (per-connection nonce), passive key theft (HMAC, key never
-  on the wire), and unauthenticated execution.
-- **Does not defend (v1):** confidentiality and active man-in-the-middle — the
-  link is plaintext. Use knit on a Thunderbolt cable or a trusted LAN only.
-  Encrypted transport (TLS 1.3 with pinned self-signed certs) is planned for v0.4.
+- **Defends:** confidentiality and integrity of every connection (TLS 1.3),
+  mutual authentication bound to the connection (an agent or client without
+  the key is refused, and a machine in the middle cannot forward a proof),
+  replay (per-connection nonce), and passive key theft (the key never crosses
+  the wire).
+- **Does not defend:** anything a legitimate key holder does. Holding the key is
+  a shell on every machine in the fabric; there is no per-machine identity and
+  no per-command authorization. Rotate the key (`knit key --rotate`) to revoke.
 
-Never expose the agent port beyond local links. For use across sites, put the
-machines on a Tailscale tailnet and use `--peer host:port` (v0.2).
+Do not expose the agent port through a router; there is nothing to gain from it.
+For use across sites, put the machines on a Tailscale tailnet and use
+`--peer host`.
 
 ## Reporting a vulnerability
 

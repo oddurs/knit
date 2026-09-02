@@ -44,12 +44,12 @@ side.
 ## Tailscale
 
 This is the intended way to use knit across the internet. Tailscale gives every
-machine a stable name and an encrypted link; knit rides on top:
+machine a stable name and a route to it; knit rides on top:
 
 ```sh
 knit run --peer studio.tail1234.ts.net --on studio -- ...
 ```
 
-knit's own link is not encrypted yet (see [Security](../trust/security.md)),
-which is exactly why an overlay is the right transport for anything beyond
-your desk or LAN.
+knit's own connections are encrypted and authenticated by the key wherever
+they run (see [Security](../trust/security.md)); the overlay's job here is
+reachability, not secrecy.

@@ -1,5 +1,5 @@
 # ADR-0008: TLS 1.3 with pinned self-signed certs (deferred to v0.4)
-Status: Accepted (deferred)
+Status: Superseded in mechanism by [ADR-0009](0009-tls-key-bound-handshake.md) (TLS 1.3 kept; pinning replaced by a key-bound handshake)
 Date: 2026-09-01
 
 ## Context

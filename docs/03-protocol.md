@@ -24,25 +24,34 @@ short-lived and a drop is meaningful (see below).
 
 ## Handshake
 
+The TCP connection is wrapped in TLS 1.3 first (ephemeral self-signed server
+certificate, not verified by the client). Everything below travels inside it.
+Both ends derive a 32-byte *channel binding* from the TLS keying material
+(`ExportKeyingMaterial("knit channel binding")`), and every proof includes it.
+
 ```
 server → client:   KNIT1 <32-hex-char nonce>\n
-client → server:   {"v":2,"hmac":"<hex hmac-sha256(key,nonce)>","op":"run","cmd":["zstd","-19"]}\n
+client → server:   {"v":3,"hmac":"<hex hmac-sha256(key,nonce)>","op":"run","cmd":["zstd","-19"]}\n
                    optional: "dir":true, "sync":true (working-directory transfer);
                              "hosts":[addr,...], "rank":n (a `knit each` launch: the
                              agent exports KNIT_RANK/NNODES/HOSTS/MASTER and
                              MLX_RANK/MLX_HOSTFILE to the command)
-server → client:   {"ok":true}\n                       (or {"ok":false,"error":"...","code":"..."}\n)
+server → client:   {"ok":true,"proof":"<hex>"}\n        (or {"ok":false,"error":"...","code":"..."}\n)
 ```
 
-- The nonce is 16 random bytes, hex-encoded, fresh per connection. The HMAC is
-  `HMAC-SHA256(key, nonce)`, hex-encoded. The key never crosses the wire; replay
-  is useless because the nonce is single-use.
-- Verification is constant-time. A failed verification gets exactly one
-  `{"ok":false,...}` line with code `unauthorized`, then the connection closes.
-- The client sends its protocol version in `"v"` (currently `2`). An agent
-  refuses an older client with code `version` and a message naming the fix
-  (upgrade the client). Unknown JSON fields are ignored in both directions, so
-  minor additions never break older peers.
+- The nonce is 16 random bytes, hex-encoded, fresh per connection. The client's
+  `hmac` is `HMAC-SHA256(key, "knit client" ‖ 0 ‖ nonce ‖ 0 ‖ binding)`; the
+  server's `proof` is the same over `"knit server"`. The key never crosses the
+  wire; replay is useless because the nonce is single-use, and a proof relayed
+  through a machine in the middle fails because the binding differs per leg.
+- Verification is constant-time on both sides. A failed client proof gets
+  exactly one `{"ok":false,...}` line with code `unauthorized`, then the
+  connection closes. A missing or wrong server proof makes the client close
+  and report the agent as not holding the key.
+- The client sends its protocol version in `"v"` (currently `3`, the TLS
+  generation). A v3 client reaching a plaintext v2 agent sees a TLS record
+  error and reports "an older knit"; unknown JSON fields are ignored in both
+  directions, so minor additions never break peers within a generation.
 
 Ops: `info` and `run`.
 
@@ -116,16 +125,17 @@ CLI can name the fix (principle: errors name the fix, not just the failure).
 
 ## Versioning
 
-The handshake is identical across versions; only the post-`ok` run phase differs.
-`v2` (KNIT2) frames the client→server direction, adding stdin/stdin-EOF/signal
-frames as above ([`KN-EXEC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)). A
-future `v3` would add `winsize` (type 13) and a TTY mode for interactive
-programs. The agent serves the highest version the client also speaks, so mixed
-knit versions across machines interoperate during an upgrade.
+`v2` (KNIT2) framed the client→server direction, adding stdin/stdin-EOF/signal
+frames as above ([`KN-EXEC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)).
+`v3` wrapped the connection in TLS and bound both proofs to it
+([`KN-AUTH-040`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md)); it
+is the first version boundary that does not interoperate with the previous
+one, and each side says so. A future version would add `winsize` (type 13)
+and a TTY mode for interactive programs.
 
 ## Security summary
 
 Trust is symmetric key possession; `run` is arbitrary code execution by design, so
-authentication is the whole game. The full threat model, the accepted v1 gaps
-(no transport encryption yet), and the TLS-with-pinned-certs plan live in
+authentication is the whole game. The link is TLS 1.3 authenticated by that key
+in both directions. The full threat model and its accepted gaps live in
 [08-security-model.md](08-security-model.md).

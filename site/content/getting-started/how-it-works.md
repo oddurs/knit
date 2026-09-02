@@ -26,11 +26,12 @@ Networks that block multicast, and overlays such as Tailscale, are handled by
 
 ## One key is the whole pairing
 
-Every machine in a fabric holds the same 32-byte key in `~/.knit/key`. A client
-proves it has the key on every connection without ever sending it. That is
-authentication in full: no accounts, no certificates, no allowlists. Treat the
-key like an SSH private key; [Security](../trust/security.md) says exactly what
-it does and does not protect.
+Every machine in a fabric holds the same 32-byte key in `~/.knit/key`. Every
+connection is TLS 1.3, and inside it each end proves it holds the key, bound to
+that connection, without ever sending it. That is authentication and
+encryption in full: no accounts, no certificates to manage, no allowlists.
+Treat the key like an SSH private key; [Security](../trust/security.md) says
+exactly what it does and does not protect.
 
 ## The least-loaded machine wins
 

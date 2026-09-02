@@ -19,6 +19,9 @@ In order of likelihood:
    distant or sleepy link, `KNIT_TIMEOUT_MS=1000 knit gauge`.
 5. **A firewall.** Allow TCP 5648 inbound on the agent machine. On macOS,
    accept the prompt to let `knit` receive connections.
+6. **It runs an older knit.** Since v0.4 every connection is encrypted, and a
+   v0.3 agent cannot answer a v0.4 client (or the reverse). Name it with
+   `--peer` and `knit gauge` says `runs an older knit`; upgrade it.
 
 `knit gauge` waits a full second for discovery every time, so it is not the
 command to script in a tight loop; `knit run` uses a five-second cache and is
@@ -62,8 +65,10 @@ it with the command and both versions.
 ## A stale agent
 
 If `knit down` reports no agent but `knit gauge` still shows this machine, an
-older agent process is running without a pidfile. Find it with `pgrep -f "knit
-up"` and stop it with `kill <pid>`.
+agent process is running that knit did not start: a `--forever` unit from a
+different `KNIT_HOME`, or a leftover process without a pidfile. Check
+`launchctl print gui/$(id -u)/io.knit.agent` on macOS or `systemctl --user
+status knit` on Linux; otherwise `pgrep -f "knit up"` and `kill <pid>`.
 
 ## Two agents, one name
 

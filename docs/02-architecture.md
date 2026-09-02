@@ -58,18 +58,24 @@ too big for knit.
 - Advertises `_knit._tcp` over mDNS with TXT metadata (`v`, `os`, `arch`,
   `cpus`). TXT is for identity and coarse filtering only; live load and free
   memory are never in TXT because they would go stale (see Discovery).
-- On each connection: send a fresh nonce, verify the client's HMAC, then serve one
-  of two ops — `info` (live capacity) or `run` (spawn a process, stream its
-  stdio). One operation per connection keeps the protocol a page long
-  ([ADR-0005](adr/0005-tcp-length-prefixed-framing.md)).
+- On each connection: complete a TLS 1.3 handshake with an ephemeral
+  certificate, send a fresh nonce, verify the client's key-bound HMAC, prove
+  the key back, then serve one of two ops — `info` (live capacity) or `run`
+  (spawn a process, stream its stdio). One operation per connection keeps the
+  protocol a page long ([ADR-0005](adr/0005-tcp-length-prefixed-framing.md),
+  [ADR-0009](adr/0009-tls-key-bound-handshake.md)). The key is re-read per
+  connection so `knit key --rotate` needs no restart.
 - Concurrency: one goroutine per accepted connection; within a `run`, one
   goroutine each for stdin→process, process-stdout→client, process-stderr→client,
   plus the main goroutine waiting on the process. No shared mutable state between
   connections, so there are no locks on the accept path.
 - `knit up` runs in the foreground; `knit up -d` re-execs itself detached
-  (setsid, logs to `~/.knit/agent.log`, writes a pidfile for `knit down`).
-  Reboot-persistent launchd/systemd units are roadmap
+  (setsid, logs to `~/.knit/agent.log`, writes a pidfile for `knit down`);
+  `knit up --forever` installs a launchd agent (macOS) or systemd user unit
+  (Linux) that starts it at login and restarts it if it stops
   ([`KN-OPS-040`](../roadmaps/milestones/m4-v0.4-encrypted-persistent.md)).
+  `knit down` undoes whichever was used. The service code is the one
+  OS-specific part of the lifecycle and lives in `internal/sysinfo`.
 
 ## Discovery
 

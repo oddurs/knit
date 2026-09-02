@@ -3,13 +3,14 @@
 Seven commands. If it needs an eighth, the design is drifting.
 
 ```
-knit up [-d]            start sharing this machine (-d: background)
-knit down               stop the background agent
+knit up [-d|--forever]  start sharing this machine (-d: background;
+                        --forever: at every login via launchd/systemd)
+knit down               stop the agent, however it was started
 knit gauge [--json]     show machines and their capacity  (alias: ls)
 knit run [--on NAME] [--mem GB] [--arch ARCH] [--dir] [--sync] -- CMD [ARGS...]
                         run a command on the machine with most headroom
 knit each -- CMD        run a command on every machine at once
-knit key                print this machine's cluster key
+knit key [--rotate]     print this machine's cluster key (--rotate: replace it)
 knit join KEY           join the fabric that key belongs to
 ```
 

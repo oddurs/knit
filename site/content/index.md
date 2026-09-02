@@ -18,6 +18,6 @@ seven commands. That is the whole surface; there is no configuration file.
 **Running models?** [AI workloads](guides/ai-workloads.md) has copy-paste
 launches for MLX distributed, torchrun, and llama.cpp RPC.
 
-Before you rely on it across a network you do not control, read
-[Security](trust/security.md): the key authenticates, the link is not yet
-encrypted.
+Before you hand the key to another machine, read
+[Security](trust/security.md): every connection is encrypted and both ends
+prove the key, and holding the key is a shell on every machine in the fabric.
