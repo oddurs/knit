@@ -45,7 +45,7 @@ knit key                 # on machine A → prints 64 hex chars
 knit join <key>          # on machine B
 
 # 3. Use the fabric
-knit ls                  # see machines and live load
+knit gauge               # see machines and their capacity
 knit run -- make -j      # runs where there's most headroom
 knit run --on studio -- python quantize.py
 cat data.csv | knit run -- zstd -19 > data.zst
