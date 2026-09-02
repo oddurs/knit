@@ -15,7 +15,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-const title = titleOf(entry.body ?? '', entry.id);
+const title = entry.data.title ?? titleOf(entry.body ?? '', entry.id);
 const nav = await docsNav();
 const base = import.meta.env.BASE_URL;
 const here = Astro.url.pathname;
@@ -27,17 +27,16 @@ const current = (p) => (here === base + p ? 'page' : undefined);
       <ul>
         <li><a href={`${base}docs/`} aria-current={current('docs/')}>Overview</a></li>
       </ul>
-      <h4>Guides</h4>
-      <ul>{nav.guides.map((i) => <li><a href={base + i.path} aria-current={current(i.path)}>{i.title}</a></li>)}</ul>
-      <h4>Decisions</h4>
-      <ul>
-        <li><a href={`${base}docs/adr/`} aria-current={current('docs/adr/')}>About ADRs</a></li>
-        {nav.adrs.map((i) => <li><a href={base + i.path} aria-current={current(i.path)}>{i.title}</a></li>)}
-      </ul>
+      {nav.map((s) => (
+        <>
+          <h4>{s.label}</h4>
+          <ul>{s.pages.map((i) => <li><a href={base + i.path} aria-current={current(i.path)}>{i.title}</a></li>)}</ul>
+        </>
+      ))}
     </aside>
     <article class="prose">
       <Content />
-      <p><small><a href={`https://github.com/oddurs/knit/blob/main/docs/${entry.id}.md`}>Edit this page on GitHub</a></small></p>
+      <p><small><a href={`https://github.com/oddurs/knit/blob/main/site/content/${entry.id}.md`}>Edit this page on GitHub</a></small></p>
     </article>
   </div>
 </Base>

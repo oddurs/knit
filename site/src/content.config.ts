@@ -1,14 +1,14 @@
-// One collection: every Markdown file under the repository's docs/ directory,
-// read in place by a small loader. The site never copies documentation; the
-// loader only rewrites the repository-relative links the docs use
-// (`03-protocol.md#error-codes`, `adr/0004-hmac.md`, `../roadmaps/x.toml`)
-// into site links, or GitHub links for files that are not part of the site.
+// One collection: the user documentation under site/content/, read by a small
+// loader that parses the `title`/`order` frontmatter itself and rewrites the
+// relative links between pages (`../guides/files.md`) into site links, or
+// GitHub links for anything outside content/. The engineering docs in the
+// repository's docs/ directory are deliberately not published.
 import { defineCollection, type Loader } from 'astro:content';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { slugFor } from './lib/slug.mjs';
 
-const DOCS = path.resolve('../docs');
+const DOCS = path.resolve('content');
 const REPO = 'https://github.com/oddurs/knit/blob/main/';
 const BASE = '/knit/';
 
@@ -20,10 +20,11 @@ function docsLoader(): Loader {
       watcher?.add(DOCS);
       for (const file of await walk(DOCS)) {
         const rel = path.relative(DOCS, file);
-        const body = rewriteLinks(await readFile(file, 'utf8'), path.dirname(rel));
+        const { data, content } = frontmatter(await readFile(file, 'utf8'));
+        const body = rewriteLinks(content, path.dirname(rel));
         store.set({
           id: rel.replace(/\.md$/, ''),
-          data: {},
+          data,
           body,
           filePath: path.relative(process.cwd(), file),
           rendered: await renderMarkdown(body),
@@ -43,6 +44,19 @@ async function walk(dir: string): Promise<string[]> {
   return out.sort();
 }
 
+// frontmatter splits a leading `---` block of `key: value` lines from the body.
+function frontmatter(src: string): { data: Record<string, string | number>; content: string } {
+  const m = src.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!m) return { data: {}, content: src };
+  const data: Record<string, string | number> = {};
+  for (const line of m[1].split('\n')) {
+    const [k, ...v] = line.split(':');
+    const value = v.join(':').trim();
+    if (k.trim()) data[k.trim()] = /^\d+$/.test(value) ? Number(value) : value;
+  }
+  return { data, content: src.slice(m[0].length) };
+}
+
 // rewriteLinks resolves each relative Markdown link target against the doc's
 // directory (relative to docs/). Targets inside docs/ become site paths;
 // anything else points at the file on GitHub.
@@ -53,7 +67,7 @@ export function rewriteLinks(md: string, fromDir: string): string {
     const resolved = path.posix.normalize(path.posix.join(fromDir, file));
     const anchor = hash ? '#' + hash : '';
     const href = resolved.startsWith('..')
-      ? REPO + path.posix.normalize(path.posix.join('docs', resolved)) + anchor
+      ? REPO + path.posix.normalize(path.posix.join('site/content', resolved)) + anchor
       : BASE + slugFor(resolved) + anchor;
     return open + href + close;
   });

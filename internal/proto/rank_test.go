@@ -2,6 +2,7 @@ package proto
 
 import (
 	"encoding/json"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -27,5 +28,20 @@ func TestRankEnvAndHostfile(t *testing.T) {
 	}
 	if got := RankEnv(0, nil, "")[3]; got != "KNIT_MASTER=" {
 		t.Fatalf("empty hosts: %q", got)
+	}
+}
+
+func TestExitStatusShellConventions(t *testing.T) {
+	if got := ExitStatus(nil); got != 0 {
+		t.Fatalf("nil: %d", got)
+	}
+	if got := ExitStatus(exec.Command("definitely-not-a-program-xyz").Run()); got != 127 {
+		t.Fatalf("missing program: %d, want 127", got)
+	}
+	if got := ExitStatus(exec.Command("sh", "-c", "exit 7").Run()); got != 7 {
+		t.Fatalf("exit 7: %d", got)
+	}
+	if got := ExitStatus(exec.Command("sh", "-c", "kill -TERM $$").Run()); got != 143 {
+		t.Fatalf("SIGTERM: %d, want 143", got)
 	}
 }

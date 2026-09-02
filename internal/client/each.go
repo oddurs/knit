@@ -103,9 +103,8 @@ func eachOne(c scheduler.Candidate, key []byte, req proto.Request, mu *sync.Mute
 	sess, err := transport.Open(c.HostPortOrEmpty(), key, req, dialTimeout)
 	if err != nil {
 		mu.Lock()
-		fmt.Fprintf(os.Stderr, "[%s] knit: %v\n", c.Name, err)
-		mu.Unlock()
-		return ExitUnreachable
+		defer mu.Unlock()
+		return reportOpenError(c.Name, err)
 	}
 	defer sess.Close()
 	// each sends no stdin; an explicit EOF frame tells the agent so.

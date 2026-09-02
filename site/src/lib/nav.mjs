@@ -1,21 +1,27 @@
 import { getCollection } from 'astro:content';
 import { slugFor, titleOf } from './slug.mjs';
 
-// docsNav returns the sidebar: repository order for the numbered guides, then
-// the ADRs, each entry with its site path and H1 title.
+// Sidebar sections, in display order, keyed by the content/ folder.
+const SECTIONS = [
+  ['getting-started', 'Getting started'],
+  ['guides', 'Guides'],
+  ['reference', 'Reference'],
+  ['trust', 'Trust and help'],
+];
+
+// docsNav returns the sidebar: one group per section, pages ordered by their
+// frontmatter `order`, titled by frontmatter `title` or the page's H1.
 export async function docsNav() {
   const entries = await getCollection('docs');
-  const items = entries
-    .map((e) => ({
-      id: e.id,
-      path: slugFor(e.id + '.md'),
-      title: titleOf(e.body ?? '', e.id).replace(/^ADR-\d+:\s*/, ''),
-      adr: e.id.startsWith('adr/'),
-      index: e.id === 'README' || e.id === 'adr/README',
-    }))
-    .sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
-  return {
-    guides: items.filter((i) => !i.adr && !i.index),
-    adrs: items.filter((i) => i.adr && !i.index),
-  };
+  return SECTIONS.map(([dir, label]) => ({
+    label,
+    pages: entries
+      .filter((e) => e.id.startsWith(dir + '/'))
+      .map((e) => ({
+        path: slugFor(e.id + '.md'),
+        title: e.data.title ?? titleOf(e.body ?? '', e.id),
+        order: Number(e.data.order ?? 999),
+      }))
+      .sort((a, b) => a.order - b.order),
+  }));
 }

@@ -102,12 +102,7 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string, dirMode, sync bo
 	req := proto.Request{Op: proto.OpRun, Cmd: cmd, Dir: dirMode, Sync: sync}
 	sess, err := transport.Open(c.HostPortOrEmpty(), key, req, dialTimeout)
 	if err != nil {
-		if re, ok := err.(*transport.ReplyError); ok && re.Code == proto.CodeUnauthorized {
-			fmt.Fprintf(os.Stderr, "knit: unauthorized on %s — run `knit key` there and `knit join <key>` here\n", c.Name)
-			return ExitUnauthorized
-		}
-		fmt.Fprintf(os.Stderr, "knit: cannot reach %s: %v\n", c.Name, err)
-		return ExitUnreachable
+		return reportOpenError(c.Name, err)
 	}
 	defer sess.Close()
 
@@ -203,6 +198,24 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string, dirMode, sync bo
 			return proto.ExitCode(p)
 		}
 	}
+}
+
+// reportOpenError prints the reason a run could not start on name and returns
+// the matching knit exit code: unauthorized (127), a command the target could
+// not spawn (127, as a local shell reports a missing program), or unreachable.
+func reportOpenError(name string, err error) int {
+	if re, ok := err.(*transport.ReplyError); ok {
+		switch re.Code {
+		case proto.CodeUnauthorized:
+			fmt.Fprintf(os.Stderr, "knit: unauthorized on %s — run `knit key` there and `knit join <key>` here\n", name)
+			return ExitUnauthorized
+		case proto.CodeSpawn:
+			fmt.Fprintf(os.Stderr, "knit: on %s: %s\n", name, re.Msg)
+			return 127
+		}
+	}
+	fmt.Fprintf(os.Stderr, "knit: cannot reach %s: %v\n", name, err)
+	return ExitUnreachable
 }
 
 func dim(s string) string {
