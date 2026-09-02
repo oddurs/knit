@@ -17,7 +17,7 @@ REGISTRY = ROOT / "roadmaps" / "registry.toml"
 STATUS = ROOT / "roadmaps" / "STATUS.md"
 
 AREAS = {"CORE","PROTO","AUTH","CLI","SYS","DISC","XPORT","AGENT","EXEC",
-         "SCHED","CLIENT","AI","OPS","NET","TEST","DOC"}
+         "SCHED","CLIENT","AI","OPS","NET","TEST","DOC","CFG"}
 STATUSES = {"planned","ready","in-progress","review","done","blocked","deferred","dropped"}
 DONE = {"done"}
 PRIORITIES = {"p0","p1","p2"}

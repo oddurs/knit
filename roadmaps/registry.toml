@@ -33,7 +33,14 @@ id = "m4"
 version = "v0.4"
 name = "encrypted, persistent, shareable"
 status = "done"
-goal = "TLS with pinned certs, reboot-persistent agents, and network sharing via SOCKS."
+goal = "TLS (key-bound handshake), reboot-persistent agents, key rotation, and network sharing via SOCKS."
+
+[[milestone]]
+id = "m5"
+version = "v0.5"
+name = "invisible"
+status = "planned"
+goal = "The fabric fades into the background: layered opt-in config, machines that protect their owner while sharing, pairing without a pasted key, and the first asymmetric trust."
 
 [[milestone]]
 id = "backlog"
@@ -602,6 +609,102 @@ accept = [
 notes = "Shipped in v0.4.1 as the deliberate eighth command, now that TLS makes a tunnel safe. A new `dial` op splices raw bytes over the run transport; the client is a SOCKS5 listener on 127.0.0.1. One op per connection is preserved; dial is that op."
 
 # ────────────────────────────── backlog items ─────────────────────────────
+
+[[item]]
+id = "KN-CFG-050"
+title = "Config file and precedence ladder, written by `knit config`"
+area = "CFG"
+milestone = "m5"
+status = "planned"
+priority = "p1"
+size = "L"
+depends = ["KN-CORE-001"]
+spec = "roadmaps/milestones/m5-v0.5-invisible.md"
+accept = [
+  "settings resolve flag > env > ~/.knit/config.toml > computed default, one ladder for every key",
+  "an absent or empty config file behaves identically to a fresh install (zero-config is the default path, not a mode)",
+  "`knit config` prints effective values with their source; `knit config KEY VALUE` writes the file; `knit config --edit` opens it; the file is generated with comments and round-trips hand edits",
+  "durable named peers live in [peers], the persistent form of --peer/KNIT_PEERS",
+  "one new command (config), not one command per setting — the anti-sprawl surface for every future knob",
+]
+
+[[item]]
+id = "KN-SCHED-051"
+title = "Share-time self-protection: reserve cores, battery, interactive load"
+area = "SCHED"
+milestone = "m5"
+status = "planned"
+priority = "p1"
+size = "M"
+depends = ["KN-CFG-050", "KN-SCHED-001"]
+spec = "roadmaps/milestones/m5-v0.5-invisible.md"
+accept = [
+  "an agent advertises capacity minus a reserve (share.reserve_cores) so a peer never takes the last core from the person at the keyboard",
+  "share.on_battery=false (default) makes a laptop decline remote work while unplugged",
+  "a machine under sustained interactive load scores itself high so work flows elsewhere; all three are config with correct defaults",
+]
+
+[[item]]
+id = "KN-AUTH-050"
+title = "Proximity pairing: code-authenticated key transfer, no pasted key"
+area = "AUTH"
+milestone = "m5"
+status = "planned"
+priority = "p0"
+size = "L"
+depends = ["KN-AUTH-040", "KN-DISC-001"]
+spec = "roadmaps/milestones/m5-v0.5-invisible.md"
+accept = [
+  "one machine offers pairing and shows a short human code; another completes it over the discovered link with the code, no key on screen or clipboard",
+  "the code authenticates a short-lived channel (PAKE/ECDH) so an eavesdropper or active attacker on the link cannot learn the key",
+  "reuses the join/key verbs (join with no argument becomes interactive); knit key / knit join <hex> stay for scripts",
+]
+
+[[item]]
+id = "KN-AUTH-051"
+title = "First asymmetric trust: offer-only and accept-list machines"
+area = "AUTH"
+milestone = "m5"
+status = "planned"
+priority = "p1"
+size = "M"
+depends = ["KN-CFG-050", "KN-AUTH-040"]
+spec = "docs/08-security-model.md"
+accept = [
+  "share.accept = any (default) | none | [names]: a machine can offer capacity in gauge while refusing run/dial, or accept only from named peers",
+  "refusal is a clear error (not a silent drop), and the key still gates membership — this narrows, never widens, trust",
+  "documented as the honest boundary where all-or-nothing key trust stops being enough",
+]
+
+[[item]]
+id = "KN-OPS-050"
+title = "Agent on after install, without a remembered command"
+area = "OPS"
+milestone = "m5"
+status = "planned"
+priority = "p2"
+size = "S"
+depends = ["KN-OPS-040"]
+spec = "roadmaps/milestones/m5-v0.5-invisible.md"
+accept = [
+  "install (brew/first run) offers to enable knit up --forever so the machine joins the fabric because it is yours, not because you ran a command",
+  "declining is one keystroke and leaves nothing behind; the choice is remembered in config",
+]
+
+[[item]]
+id = "KN-CORE-060"
+title = "Transparent offload: the fabric under tools people already run"
+area = "CORE"
+milestone = "backlog"
+status = "deferred"
+priority = "p2"
+size = "L"
+depends = ["KN-CORE-001"]
+spec = "roadmaps/milestones/m5-v0.5-invisible.md"
+accept = [
+  "heavy work leaves the machine without a new verb: a make/ninja offloader, a test-runner shard, or a remote-executor endpoint existing tools already speak",
+  "the invisible-layer endgame; kept coded, deliberately not scheduled until the config and trust foundations (m5) are in",
+]
 
 [[item]]
 id = "KN-XPORT-050"
