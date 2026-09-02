@@ -14,18 +14,30 @@ import (
 	"github.com/oddurs/knit/internal/treesync"
 )
 
-// Run schedules cmd and streams it. With onName set it pins that machine;
+// Placement holds the run flags that decide where a command goes: a pinned
+// machine (--on), a minimum of free memory in GB (--mem), an architecture
+// (--arch), and whether the working directory travels with it (--dir/--sync).
+type Placement struct {
+	On    string
+	MemGB float64
+	Arch  string
+	Dir   bool
+	Sync  bool
+}
+
+// Run schedules cmd and streams it. With On set it pins that machine;
 // otherwise it scores the local machine against reachable peers and picks the
-// least-loaded. A local win execs in-process and prints nothing; a remote run
-// prints one dim line to stderr. The return value is the command's exit code,
-// or a knit exit code on a knit-level failure.
-func Run(onName string, dirMode, sync bool, cmd []string) int {
+// least-loaded that satisfies the constraints. A local win execs in-process
+// and prints nothing; a remote run prints one dim line to stderr. The return
+// value is the command's exit code, or a knit exit code on a knit-level
+// failure.
+func Run(p Placement, cmd []string) int {
 	if len(cmd) == 0 {
 		fmt.Fprintln(os.Stderr, "knit: run needs a command after --")
 		return ExitUsage
 	}
-	if sync {
-		dirMode = true // can't mirror back what was never sent
+	if p.Sync {
+		p.Dir = true // can't mirror back what was never sent
 	}
 	key, err := loadKey()
 	if err != nil {
@@ -33,25 +45,41 @@ func Run(onName string, dirMode, sync bool, cmd []string) int {
 		return 1
 	}
 
-	peers := probePeers(key, false)
-
-	if onName != "" {
-		if c, ok := scheduler.ByName(peers, onName); ok {
-			return runRemote(c, key, cmd, dirMode, sync)
-		}
-		if onName == localCandidate().Name {
-			return runLocal(cmd)
-		}
-		fmt.Fprintf(os.Stderr, "knit: no reachable machine named %q\n", onName)
+	cands := append([]scheduler.Candidate{localCandidate()}, probePeers(key, false)...)
+	cands, why := scheduler.Filter(cands, p.MemGB, p.Arch)
+	if why != "" {
+		fmt.Fprintln(os.Stderr, "knit:", why)
 		return ExitUnreachable
 	}
 
-	cands := append([]scheduler.Candidate{localCandidate()}, peers...)
-	best, ok := scheduler.Pick(cands)
-	if !ok || best.Local {
+	var best scheduler.Candidate
+	if p.On != "" {
+		c, ok := scheduler.ByName(cands, p.On)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "knit: no reachable machine named %q%s\n", p.On, constraintNote(p))
+			return ExitUnreachable
+		}
+		best = c
+	} else {
+		best, _ = scheduler.Pick(cands) // never empty: Filter reported otherwise
+	}
+	if best.Local {
 		return runLocal(cmd) // already runs in the local working directory
 	}
-	return runRemote(best, key, cmd, dirMode, sync)
+	return runRemote(best, key, cmd, p.Dir, p.Sync)
+}
+
+// constraintNote explains, when --on misses, that a constraint may be why.
+func constraintNote(p Placement) string {
+	switch {
+	case p.MemGB > 0 && p.Arch != "":
+		return fmt.Sprintf(" with %g GB free and arch %s", p.MemGB, p.Arch)
+	case p.MemGB > 0:
+		return fmt.Sprintf(" with %g GB free", p.MemGB)
+	case p.Arch != "":
+		return " with arch " + p.Arch
+	}
+	return ""
 }
 
 // runLocal executes the command in this process's environment, inheriting

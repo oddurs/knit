@@ -27,6 +27,10 @@ short-lived and a drop is meaningful (see below).
 ```
 server → client:   KNIT1 <32-hex-char nonce>\n
 client → server:   {"v":2,"hmac":"<hex hmac-sha256(key,nonce)>","op":"run","cmd":["zstd","-19"]}\n
+                   optional: "dir":true, "sync":true (working-directory transfer);
+                             "hosts":[addr,...], "rank":n (a `knit each` launch: the
+                             agent exports KNIT_RANK/NNODES/HOSTS/MASTER and
+                             MLX_RANK/MLX_HOSTFILE to the command)
 server → client:   {"ok":true}\n                       (or {"ok":false,"error":"...","code":"..."}\n)
 ```
 
@@ -52,9 +56,11 @@ and closes:
  "mem_gb":128.0,"mem_free_gb":96.4,"load1":0.42,"accel":"metal","gpu":"Apple M3 Ultra"}
 ```
 
-`mem_free_gb`, `accel`, and `gpu` ship in v0.3 ([`KN-SYS-030`](../roadmaps/milestones/m3-v0.3-ai-native.md));
-v0.1 populates `name/os/arch/cpus/mem_gb/load1`. Consumed by `knit ls`, the
-scheduler, and — because it requires a valid HMAC — as the authentication probe.
+`mem_free_gb` is what could be allocated now (macOS: total minus wired,
+compressed, and app memory, as Activity Monitor counts it; Linux:
+`MemAvailable`). `accel` is `metal`, `cuda`, or `none`; `gpu` names the chip or
+card when there is one. Consumed by `knit ls`, the scheduler, and — because it
+requires a valid HMAC — as the authentication probe.
 
 ## op = run
 

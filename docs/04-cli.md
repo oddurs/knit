@@ -6,7 +6,7 @@ Seven commands. If it needs an eighth, the design is drifting.
 knit up [-d]            start sharing this machine (-d: background)
 knit down               stop the background agent
 knit gauge [--json]     show machines and their capacity  (alias: ls)
-knit run [--on NAME] [--mem N] -- CMD [ARGS...]
+knit run [--on NAME] [--mem GB] [--arch ARCH] [--dir] [--sync] -- CMD [ARGS...]
                         run a command on the machine with most headroom
 knit each -- CMD        run a command on every machine at once
 knit key                print this machine's cluster key
@@ -14,9 +14,11 @@ knit join KEY           join the fabric that key belongs to
 ```
 
 `--dir` sends the working directory to the target and runs the command there;
-`--sync` also mirrors changed files back (implies `--dir`). `--mem` ships in v0.3;
-`--peer host[:port]` (global, pre-mDNS) is available now; the port defaults to
-5648, which an agent binds whenever it is free.
+`--sync` also mirrors changed files back (implies `--dir`). `--mem GB` and
+`--arch` only consider machines with that much memory allocatable right now, or
+that architecture, and fail loudly when none qualifies. `--peer host[:port]`
+(global, pre-mDNS) adds a machine mDNS cannot see; the port defaults to 5648,
+which an agent binds whenever it is free.
 
 ## Nomenclature
 
@@ -83,6 +85,19 @@ Kept to a minimum; all optional, all overridable by flags where a flag exists.
 | `KNIT_TIMEOUT_MS` | override the per-peer `info` probe budget (default 250)      |
 | `NO_COLOR`          | honored — suppresses the dim styling of the `knit →` line  |
 
+`knit each` sets these on every process it launches (this machine is rank 0,
+peers follow in order of spare capacity), so multi-node launchers need no
+hand-written host list:
+
+| Variable       | Value                                                      |
+| -------------- | ---------------------------------------------------------- |
+| `KNIT_RANK`    | this machine's position in the launch                      |
+| `KNIT_NNODES`  | number of machines in the launch                           |
+| `KNIT_HOSTS`   | comma-separated addresses in rank order                    |
+| `KNIT_MASTER`  | address of rank 0 (torchrun's `--master_addr`)             |
+| `MLX_RANK`     | same as `KNIT_RANK`, as MLX's ring backend reads it        |
+| `MLX_HOSTFILE` | path of an MLX-format hostfile written for this launch     |
+
 ## Output contracts (for tools built on knit)
 
 - `knit ls --json` emits one JSON array of `info` envelopes plus a synthetic
@@ -105,19 +120,25 @@ knit join <key>               # on machine B
 
 # See the fabric
 knit ls
-#  NAME     ADDR            OS/ARCH        CPUS  MEM     LOAD  LINK
-#  studio   169.254.87.3    darwin/arm64   24    128.0G  0.31  thunderbolt
-#  mini     192.168.1.40    darwin/arm64   10    32.0G   1.85  lan
-#  here     —               darwin/arm64   8     24.0G   4.02  (this machine)
+#  NAME     ADDR            OS/ARCH        CPUS  MEM     FREE    LOAD  GPU             LINK
+#  studio   169.254.87.3    darwin/arm64   24    128.0G  96.4G   0.31  Apple M3 Ultra  thunderbolt ~40G
+#  mini     192.168.1.40    darwin/arm64   10    32.0G   11.2G   1.85  Apple M4        wifi
+#  here     —               darwin/arm64   8     24.0G   9.8G    4.02  Apple M2        (this machine)
 
 # Offload transparently
 knit run -- ffmpeg -i in.mov -c:v libx264 out.mp4
 
-# Pin a machine
+# Pin a machine, or describe what the job needs
 knit run --on studio -- python quantize.py
+knit run --mem 48 -- python -m mlx_lm.generate --model 70b-q4 ...
 
 # Fan out
 knit each -- uname -a
+
+# Multi-node launch: every process gets its rank and the host list
+knit each -- python train.py                                   # MLX ring backend
+knit each -- sh -c 'torchrun --nnodes $KNIT_NNODES --node_rank $KNIT_RANK \
+                    --master_addr $KNIT_MASTER train.py'       # torchrun
 ```
 
 ## Flags kept out on purpose

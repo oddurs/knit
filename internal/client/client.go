@@ -91,7 +91,7 @@ func gatherPeers(fresh bool) []discovery.Peer {
 
 // probePeers gathers candidate peers and probes each for live capacity in
 // parallel within the probe budget, returning the reachable, authorized ones
-// with a best-effort link classification set from the peer's address.
+// with the link they are reached over classified from the peer's address.
 func probePeers(key []byte, fresh bool) []scheduler.Candidate {
 	peers := gatherPeers(fresh)
 	ch := make(chan *scheduler.Candidate, len(peers))
@@ -103,8 +103,9 @@ func probePeers(key []byte, fresh bool) []scheduler.Candidate {
 				ch <- nil
 				return
 			}
-			info.Link = discovery.ClassifyLink(p.Addr)
-			ch <- &scheduler.Candidate{Name: info.Name, Addr: p.Addr, Port: p.Port, Info: info}
+			label, mbps := discovery.Link(p.Addr)
+			info.Link = label
+			ch <- &scheduler.Candidate{Name: info.Name, Addr: p.Addr, Port: p.Port, Info: info, LinkMbps: mbps}
 		}(p)
 	}
 	var res []scheduler.Candidate

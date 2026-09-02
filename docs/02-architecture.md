@@ -78,6 +78,9 @@ simplification: macOS auto-creates a Thunderbolt Bridge interface with a
 link-local address the moment a cable is plugged in, and Linux does the
 equivalent for USB/Thunderbolt networking, so wired peer-to-peer links need
 *zero* code beyond "browse everywhere." mDNS gives `name → (addresses, port)`.
+The client then asks the OS what each local interface is (`networksetup` on
+macOS, sysfs on Linux) to label the link a peer is reached over — thunderbolt,
+ethernet with its negotiated speed, wifi — and to prefer the fastest address.
 
 **Seamlessness through a short cache.** A cold browse takes roughly half a
 second, which you would feel on every command. So the client caches discovered
@@ -94,7 +97,7 @@ where multicast is filtered ([`KN-DISC-020`](../roadmaps/milestones/m2-v0.2-real
 
 ## Scheduler
 
-Deliberately dumb in v1:
+Deliberately dumb:
 
 ```
 score(machine) = load1 / cpu_count        # lower is better, local included
@@ -106,6 +109,19 @@ candidate set, never retried inline. The local machine is always a candidate and
 is scored from local sysinfo with no network cost. If it wins — or if there are no
 peers — the command execs locally and knit prints nothing: the invisible
 fallback. `--on <name>` pins a target and skips scoring.
+
+Two refinements on top (v0.3):
+
+- **Placement filters run before scoring.** `--mem N` drops every machine with
+  less than N GB allocatable right now (`mem_free_gb`), `--arch` drops every
+  other architecture. An empty set is an error that names the constraint and the
+  closest machine (`no machine has 48 GB free (most: studio with 31.2 GB)`),
+  never a silent local fallback. `--on` is checked against the filtered set.
+- **Ties go to the faster link.** Scores within 0.01 load-per-core are a tie,
+  broken toward the higher nominal link speed. The local machine counts as
+  infinitely fast, so a true tie still stays home. A peer reachable over both a
+  Thunderbolt bridge and Wi-Fi is also *dialed* on the bridge: discovery keeps
+  the address on the fastest link.
 
 Planned refinements, in value order (v0.3+), each a filter applied before scoring:
 

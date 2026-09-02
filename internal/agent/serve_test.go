@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -149,5 +151,42 @@ func readPid(t *testing.T, sess *transport.Session) int {
 				return pid
 			}
 		}
+	}
+}
+
+// TestRankEnvReachesCommand: a request carrying hosts/rank runs the command
+// with the rank environment and a readable MLX hostfile (KN-AI-030).
+func TestRankEnvReachesCommand(t *testing.T) {
+	t.Setenv("KNIT_HOME", t.TempDir())
+	addr := serveOne(t, testKey())
+	sess, err := transport.Open(addr, testKey(), proto.Request{
+		Op: proto.OpRun, Hosts: []string{"10.0.0.1", "10.0.0.2"}, Rank: 1,
+		Cmd: []string{"sh", "-c", `echo "$KNIT_RANK/$KNIT_NNODES/$KNIT_MASTER/$MLX_RANK"; cat "$MLX_HOSTFILE"`},
+	}, 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sess.Close()
+	_ = proto.NewFrameWriter(sess.Conn).Write(proto.FrameStdinEOF, nil)
+	_ = sess.Conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	var out strings.Builder
+	for {
+		typ, p, err := proto.ReadFrame(sess.R)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if typ == proto.FrameStdout {
+			out.Write(p)
+		}
+		if typ == proto.FrameExit {
+			break
+		}
+	}
+	got := out.String()
+	if !strings.HasPrefix(got, "1/2/10.0.0.1/1\n") || !strings.Contains(got, `"ips":["10.0.0.2"]`) {
+		t.Fatalf("unexpected output:\n%s", got)
+	}
+	if files, _ := filepath.Glob(filepath.Join(os.Getenv("KNIT_HOME"), "hostfile-*.json")); len(files) != 0 {
+		t.Fatalf("hostfile not cleaned up: %v", files)
 	}
 }

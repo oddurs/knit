@@ -28,9 +28,9 @@ framing overhead (one `writev` per frame, pooled buffers, Nagle off) keeps the
 per-hop cost near the wire, so the cable — not knit — is the ceiling. The honest
 physics, repeated wherever it belongs: **tensor-parallel across machines is
 bandwidth-hungry and disappointing over Wi-Fi; pipeline/layer splits over a
-Thunderbolt cable are the sweet spot.** knit surfaces link type per peer (v0.3
-`ls` shows `thunderbolt`/`wifi`) so users aren't surprised, and prefers the wired
-address when a peer is reachable on several.
+Thunderbolt cable are the sweet spot.** knit surfaces link type per peer (`ls`
+shows `thunderbolt ~40G`, `ethernet 10G`, `wifi`) so users aren't surprised, and
+dials the fastest address when a peer is reachable on several.
 
 ## Concrete flows
 
@@ -41,11 +41,18 @@ knit each -- ./rpc-server -H 0.0.0.0 -p 50052       # workers everywhere
 llama-cli -m 70b-q4.gguf --rpc studio.local:50052,mini.local:50052 -ngl 99
 ```
 
-**MLX distributed** wants a hostfile; generating it is one `ls --json` away.
-Planned sugar (v0.3, [`KN-AI-030`](../roadmaps/milestones/m3-v0.3-ai-native.md)):
-`knit hostfile > hosts.json` and `knit mpirun -- python -m mlx_lm.generate ...`
-so the whole flow is two commands. The same shape drives `torchrun --nnodes` on
-Linux boxes.
+**MLX distributed and torchrun** want each process to know its rank and the
+host list. `knit each` sets exactly that on every process it launches
+([`KN-AI-030`](../roadmaps/milestones/m3-v0.3-ai-native.md)): `KNIT_RANK`,
+`KNIT_NNODES`, `KNIT_HOSTS`, `KNIT_MASTER`, plus `MLX_RANK` and an
+`MLX_HOSTFILE` it writes for the launch. This machine is rank 0; peers follow in
+order of spare capacity. No eighth command, no hostfile by hand:
+
+```sh
+knit each -- python -m mlx_lm.generate --model ... # MLX ring backend, as is
+knit each -- sh -c 'torchrun --nnodes $KNIT_NNODES --node_rank $KNIT_RANK \
+                    --master_addr $KNIT_MASTER train.py'
+```
 
 **Quantization / batch offload** (works with v0.1): quantizing, dataset
 preprocessing, and evals are exactly the "one heavy command, big I/O" shape knit
@@ -56,15 +63,21 @@ knit run --on studio -- python -m mlx_lm.convert --hf-path meta-llama/... -q
 cat corpus.jsonl | knit run -- python embed.py > vectors.jsonl
 ```
 
-## Memory and accelerator reporting (v0.3)
+## Memory and accelerator reporting
 
-Total RAM ships in v0.1 `info`. To schedule models properly, `info` grows
+`info` carries what a model launcher decides on
 ([`KN-SYS-030`](../roadmaps/milestones/m3-v0.3-ai-native.md)):
 
-- `mem_free_gb` — what could actually be allocated now, so `--mem` is meaningful.
-- `gpu` — on Apple silicon, chip name + unified memory (one `sysctl` /
-  `system_profiler` away); on Linux, NVML totals if present.
+- `mem_free_gb` — what could actually be allocated now, so `--mem` is
+  meaningful. macOS: total minus wired, compressed, and app memory (Activity
+  Monitor's arithmetic; file cache counts as free because a model load reclaims
+  it). Linux: `MemAvailable`.
+- `gpu` — on Apple silicon the chip name (its memory *is* `mem_gb`); on Linux,
+  the first NVIDIA card's name and memory via `nvidia-smi` when present.
 - `accel` — `metal` | `cuda` | `none`, so launchers pick backends.
+
+`knit run --mem 48 -- ...` then refuses every machine that cannot hold the job
+and says which one came closest.
 
 ## Sharing network resources (v0.4 sketch)
 

@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"net"
 	"testing"
 )
 
@@ -22,21 +23,43 @@ func TestParsePeerList(t *testing.T) {
 	}
 }
 
-func TestClassifyLink(t *testing.T) {
-	cases := map[string]string{
-		"169.254.87.3": "thunderbolt",
-		"fe80::1":      "thunderbolt",
-		"192.168.1.40": "lan",
-		"10.0.0.5":     "lan",
-		"127.0.0.1":    "local",
-		"8.8.8.8":      "net",
-		"not-an-ip":    "",
+func TestLinkLabels(t *testing.T) {
+	if label, _ := Link("127.0.0.1"); label != "local" {
+		t.Fatalf("loopback: %q", label)
 	}
-	for addr, want := range cases {
-		if got := ClassifyLink(addr); got != want {
-			t.Fatalf("ClassifyLink(%q) = %q, want %q", addr, got, want)
+	if label, _ := Link("203.0.113.9"); label != "net" { // TEST-NET, never on a local subnet
+		t.Fatalf("routed: %q", label)
+	}
+	if label, _ := Link("not-an-ip"); label != "" {
+		t.Fatalf("garbage: %q", label)
+	}
+}
+
+func TestFastestPrefersHigherSpeed(t *testing.T) {
+	link := func(a string) (string, int) {
+		return "", map[string]int{"169.254.1.2": 40000, "192.168.1.9": 0}[a]
+	}
+	ips := []net.IP{net.ParseIP("192.168.1.9"), net.ParseIP("169.254.1.2")}
+	if got := fastest(ips, link); got != "169.254.1.2" {
+		t.Fatalf("got %q", got)
+	}
+	if got := fastest(nil, link); got != "" {
+		t.Fatalf("empty: %q", got)
+	}
+}
+
+func TestLocalAddrTowardSelf(t *testing.T) {
+	// Our own address is on the interface toward itself.
+	addrs, _ := net.InterfaceAddrs()
+	for _, a := range addrs {
+		if n, ok := a.(*net.IPNet); ok && !n.IP.IsLoopback() && n.IP.To4() != nil {
+			if got := LocalAddrToward(n.IP.String()); got != n.IP.String() {
+				t.Fatalf("toward %s: got %s", n.IP, got)
+			}
+			return
 		}
 	}
+	t.Skip("no non-loopback IPv4 interface")
 }
 
 func TestParsePeerDefaultsPort(t *testing.T) {

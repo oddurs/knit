@@ -6,9 +6,12 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 
+	"github.com/oddurs/knit/internal/discovery"
+	"github.com/oddurs/knit/internal/paths"
 	"github.com/oddurs/knit/internal/proto"
 	"github.com/oddurs/knit/internal/scheduler"
 	"github.com/oddurs/knit/internal/sysinfo"
@@ -19,6 +22,10 @@ import (
 // reachable, authorized peer over the wire — prefixing each output line with
 // the machine name. It exits 0 only if every machine exited 0, else the
 // highest code observed.
+//
+// Every process is launched with the rank environment (proto.RankEnv): this
+// machine is rank 0 and peers follow in order of spare capacity, so torchrun
+// and MLX distributed start from `knit each` with no hostfile written by hand.
 func Each(cmd []string) int {
 	if len(cmd) == 0 {
 		fmt.Fprintln(os.Stderr, "knit: each needs a command after --")
@@ -30,6 +37,16 @@ func Each(cmd []string) int {
 		return 1
 	}
 	peers := probePeers(key, true)
+	sort.SliceStable(peers, func(i, j int) bool { return peers[i].Info.Score() < peers[j].Info.Score() })
+	hosts := make([]string, 0, 1+len(peers))
+	if len(peers) > 0 {
+		hosts = append(hosts, discovery.LocalAddrToward(peers[0].Addr))
+	} else {
+		hosts = append(hosts, discovery.LocalAddrToward(""))
+	}
+	for _, p := range peers {
+		hosts = append(hosts, p.Addr)
+	}
 
 	var mu sync.Mutex // serialize writes to the shared stdout/stderr
 	var wg sync.WaitGroup
@@ -38,14 +55,14 @@ func Each(cmd []string) int {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		codes[0] = eachLocal(names[0], cmd, &mu)
+		codes[0] = eachLocal(names[0], cmd, hosts, &mu)
 	}()
 	for i, p := range peers {
 		names = append(names, p.Name)
 		wg.Add(1)
 		go func(i int, c scheduler.Candidate) {
 			defer wg.Done()
-			codes[i] = eachOne(c, key, cmd, &mu)
+			codes[i] = eachOne(c, key, proto.Request{Op: proto.OpRun, Cmd: cmd, Hosts: hosts, Rank: i}, &mu)
 		}(i+1, p)
 	}
 	wg.Wait()
@@ -62,15 +79,19 @@ func Each(cmd []string) int {
 	return worst
 }
 
-// eachLocal runs cmd on this machine with the same prefixing and no stdin, so
-// the local line looks exactly like a peer's.
-func eachLocal(name string, cmd []string, mu *sync.Mutex) int {
+// eachLocal runs cmd on this machine (rank 0) with the same prefixing and no
+// stdin, so the local line looks exactly like a peer's.
+func eachLocal(name string, cmd []string, hosts []string, mu *sync.Mutex) int {
 	out := &prefixer{mu: mu, w: os.Stdout, prefix: "[" + name + "] "}
 	errs := &prefixer{mu: mu, w: os.Stderr, prefix: "[" + name + "] "}
 	defer out.flush()
 	defer errs.flush()
 	c := exec.Command(cmd[0], cmd[1:]...)
 	c.Stdout, c.Stderr = out, errs
+	if env, cleanup, err := paths.RankEnv(0, hosts); err == nil {
+		defer cleanup()
+		c.Env = append(os.Environ(), env...)
+	}
 	err := c.Run()
 	if _, exited := err.(*exec.ExitError); err != nil && !exited {
 		errs.Write([]byte("knit: " + err.Error() + "\n"))
@@ -78,8 +99,8 @@ func eachLocal(name string, cmd []string, mu *sync.Mutex) int {
 	return proto.ExitStatus(err)
 }
 
-func eachOne(c scheduler.Candidate, key []byte, cmd []string, mu *sync.Mutex) int {
-	sess, err := transport.Open(c.HostPortOrEmpty(), key, proto.Request{Op: proto.OpRun, Cmd: cmd}, dialTimeout)
+func eachOne(c scheduler.Candidate, key []byte, req proto.Request, mu *sync.Mutex) int {
+	sess, err := transport.Open(c.HostPortOrEmpty(), key, req, dialTimeout)
 	if err != nil {
 		mu.Lock()
 		fmt.Fprintf(os.Stderr, "[%s] knit: %v\n", c.Name, err)

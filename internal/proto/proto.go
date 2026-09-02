@@ -65,6 +65,11 @@ type Request struct {
 	// (KN-EXEC-030); Sync mirrors changed files back on completion.
 	Dir  bool `json:"dir,omitempty"`
 	Sync bool `json:"sync,omitempty"`
+	// Hosts, when set, is the rank-ordered address list of a `knit each`
+	// launch and Rank this target's position in it (KN-AI-030). The agent
+	// exposes both to the command as environment (see RankEnv).
+	Hosts []string `json:"hosts,omitempty"`
+	Rank  int      `json:"rank,omitempty"`
 }
 
 // Envelope is the single JSON line the server sends in reply. For op "info"
@@ -88,8 +93,8 @@ type Envelope struct {
 
 	// Self marks the local machine in gauge output; never sent on the wire.
 	Self bool `json:"self,omitempty"`
-	// Link is the client's guess at how a peer is reached (thunderbolt/lan/...);
-	// derived from the peer address, never sent by the agent.
+	// Link is how the client reaches this peer ("thunderbolt ~40G", "wifi",
+	// "lan", "net"); derived from the peer address, never sent by the agent.
 	Link string `json:"link,omitempty"`
 }
 

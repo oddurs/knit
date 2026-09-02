@@ -36,7 +36,9 @@ func Register(name string, port int, txt []string) (*zeroconf.Server, error) {
 }
 
 // Browse performs a fresh mDNS browse for the given duration and returns the
-// unique peers found, preferring IPv4 addresses.
+// unique peers found. A peer reachable on several interfaces is recorded at
+// the address on the fastest link (a Thunderbolt bridge over Wi-Fi), IPv4
+// before IPv6.
 func Browse(timeout time.Duration) []Peer {
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
@@ -73,11 +75,21 @@ func Browse(timeout time.Duration) []Peer {
 }
 
 func pickAddr(e *zeroconf.ServiceEntry) string {
-	if len(e.AddrIPv4) > 0 {
-		return e.AddrIPv4[0].String()
+	if a := fastest(e.AddrIPv4, Link); a != "" {
+		return a
 	}
-	if len(e.AddrIPv6) > 0 {
-		return e.AddrIPv6[0].String()
+	return fastest(e.AddrIPv6, Link)
+}
+
+// fastest returns the address whose link has the highest nominal speed, the
+// first one on a tie.
+func fastest(ips []net.IP, link func(string) (string, int)) string {
+	best, bestMbps := "", -1
+	for _, ip := range ips {
+		a := ip.String()
+		if _, mbps := link(a); mbps > bestMbps {
+			best, bestMbps = a, mbps
+		}
 	}
-	return ""
+	return best
 }

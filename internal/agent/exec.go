@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/oddurs/knit/internal/paths"
 	"github.com/oddurs/knit/internal/proto"
 	"github.com/oddurs/knit/internal/treesync"
 )
@@ -43,6 +44,12 @@ func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
 	if home, err := os.UserHomeDir(); err == nil {
 		c.Dir = home
 	}
+	cleanup, err := rankEnv(c, req)
+	if err != nil {
+		writeEnvelope(conn, proto.Envelope{Code: proto.CodeInternal, Error: err.Error()})
+		return
+	}
+	defer cleanup()
 	pipes, err := start(c)
 	if err != nil {
 		writeEnvelope(conn, proto.Envelope{Code: proto.CodeSpawn, Error: err.Error()})
@@ -83,6 +90,13 @@ func handleRunDir(conn net.Conn, br *bufio.Reader, req proto.Request) {
 
 	c := command(req.Cmd)
 	c.Dir = tmp
+	cleanup, err := rankEnv(c, req)
+	if err != nil {
+		_ = fw.Write(proto.FrameStderr, []byte("knit: "+err.Error()+"\n"))
+		_ = fw.WriteExit(1)
+		return
+	}
+	defer cleanup()
 	pipes, err := start(c)
 	if err != nil {
 		_ = fw.Write(proto.FrameStderr, []byte("knit: "+err.Error()+"\n"))
@@ -111,6 +125,20 @@ func command(cmd []string) *exec.Cmd {
 	c := exec.Command(cmd[0], cmd[1:]...)
 	c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	return c
+}
+
+// rankEnv gives c the rank environment of a `knit each` launch when the
+// request carries one; the returned cleanup removes the hostfile it wrote.
+func rankEnv(c *exec.Cmd, req proto.Request) (func(), error) {
+	if len(req.Hosts) == 0 {
+		return func() {}, nil
+	}
+	env, cleanup, err := paths.RankEnv(req.Rank, req.Hosts)
+	if err != nil {
+		return nil, err
+	}
+	c.Env = append(os.Environ(), env...)
+	return cleanup, nil
 }
 
 // start wires the pipes and starts c.

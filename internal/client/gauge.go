@@ -37,14 +37,26 @@ func Gauge(jsonOut bool) int {
 
 	sort.Slice(cands, func(i, j int) bool { return cands[i].Name < cands[j].Name })
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "NAME\tADDR\tOS/ARCH\tCPUS\tMEM\tLOAD\tLINK")
+	fmt.Fprintln(tw, "NAME\tADDR\tOS/ARCH\tCPUS\tMEM\tFREE\tLOAD\tGPU\tLINK")
 	for _, c := range cands {
 		i := c.Info
-		fmt.Fprintf(tw, "%s\t%s\t%s/%s\t%d\t%.1fG\t%.2f\t%s\n",
-			i.Name, c.Addr, i.OS, i.Arch, i.CPUs, i.MemGB, i.Load1, i.Link)
+		fmt.Fprintf(tw, "%s\t%s\t%s/%s\t%d\t%.1fG\t%.1fG\t%.2f\t%s\t%s\n",
+			i.Name, c.Addr, i.OS, i.Arch, i.CPUs, i.MemGB, i.MemFreeGB, i.Load1, gpuCell(i), i.Link)
 	}
-	fmt.Fprintf(tw, "%s\t%s\t%s/%s\t%d\t%.1fG\t%.2f\t%s\n",
-		self.Name, "—", self.OS, self.Arch, self.CPUs, self.MemGB, self.Load1, "(this machine)")
+	fmt.Fprintf(tw, "%s\t%s\t%s/%s\t%d\t%.1fG\t%.1fG\t%.2f\t%s\t%s\n",
+		self.Name, "—", self.OS, self.Arch, self.CPUs, self.MemGB, self.MemFreeGB, self.Load1, gpuCell(self), "(this machine)")
 	tw.Flush()
 	return 0
+}
+
+// gpuCell is the GPU column: the accelerator's name, or the backend when the
+// name is unknown, or a dash when there is none.
+func gpuCell(e proto.Envelope) string {
+	switch {
+	case e.GPU != "":
+		return e.GPU
+	case e.Accel != "" && e.Accel != "none":
+		return e.Accel
+	}
+	return "—"
 }
