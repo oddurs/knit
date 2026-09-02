@@ -33,6 +33,9 @@ const current = (p) => (here === base + p ? 'page' : undefined);
           <ul>{s.pages.map((i) => <li><a href={base + i.path} aria-current={current(i.path)}>{i.title}</a></li>)}</ul>
         </>
       ))}
+      <ul class="more">
+        <li><a href="https://github.com/oddurs/knit/tree/main/docs">Engineering docs ↗</a></li>
+      </ul>
     </aside>
     <main>
       <Content />

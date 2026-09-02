@@ -88,26 +88,28 @@ th, td { padding: 6px 13px; border: 1px solid var(--rule); text-align: left; ver
 th { font-weight: 600; }
 tr:nth-child(2n) { background: var(--code-bg); }
 
-/* Frame */
-.frame { max-width: calc(var(--measure) + var(--sidebar) + 3rem); margin: 0 auto; padding: 0 1rem; }
-.top { display: flex; align-items: baseline; gap: 1.5rem; padding: 1rem 0; border-bottom: 1px solid var(--rule); }
-.top .wordmark { font-weight: 600; color: var(--fg); }
-.top nav { display: flex; gap: 1.25rem; margin-left: auto; }
-.top nav a { color: var(--muted); }
-.top nav a:hover, .top nav a[aria-current] { color: var(--fg); text-decoration: none; }
-main { max-width: var(--measure); padding: 2rem 0; }
-.bottom { color: var(--muted); font-size: 0.85em; padding: 2rem 0; border-top: 1px solid var(--rule); }
+/* Frame: a slim bar of tabs, then the page. No footer. */
+.frame { max-width: calc(var(--measure) + var(--sidebar) + 4rem); margin: 0 auto; padding: 0 1.5rem 4rem; }
+.top { display: flex; align-items: stretch; gap: 1.5rem; border-bottom: 1px solid var(--rule); }
+.top a { display: flex; align-items: center; padding: 0.9rem 0; color: var(--muted); }
+.top a:hover { color: var(--fg); text-decoration: none; }
+.top .wordmark { font-weight: 600; color: var(--fg); margin-right: 0.5rem; }
+.top nav { display: flex; gap: 1.5rem; }
+.top nav a[aria-current] { color: var(--fg); box-shadow: inset 0 -2px var(--fg); }
+main { max-width: var(--measure); padding-top: 2.5rem; }
 
 /* Docs: sidebar + article */
-.docs { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); gap: 3rem; }
-.docs main { padding-top: 2rem; }
-.docs aside { padding-top: 2rem; font-size: 0.9em; position: sticky; top: 0; align-self: start; }
-.docs aside h4 { margin: 1.25em 0 0.4em; color: var(--muted); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; }
+.docs { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); gap: 4rem; }
+.docs aside { padding-top: 2.5rem; font-size: 0.9em; position: sticky; top: 0; align-self: start; }
+.docs aside h4 { margin: 1.5em 0 0.5em; color: var(--muted); font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 .docs aside ul { list-style: none; margin: 0; padding: 0; }
 .docs aside li { margin: 0; }
-.docs aside a { display: block; padding: 0.15em 0; color: var(--muted); }
+.docs aside a { display: block; padding: 0.2em 0; color: var(--muted); }
+.docs aside a:hover { color: var(--fg); text-decoration: none; }
 .docs aside a[aria-current] { color: var(--fg); font-weight: 600; }
+.docs aside .more { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
 @media (max-width: 800px) {
+  .frame { padding: 0 1rem 3rem; }
   .docs { grid-template-columns: 1fr; gap: 0; }
-  .docs aside { position: static; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; }
+  .docs aside { position: static; padding-top: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--rule); }
 }
