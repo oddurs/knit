@@ -589,7 +589,7 @@ id = "KN-NET-040"
 title = "knit proxy: share a peer's network via local SOCKS5"
 area = "NET"
 milestone = "m4"
-status = "deferred"
+status = "done"
 priority = "p2"
 size = "L"
 depends = ["KN-AUTH-040"]
@@ -599,7 +599,7 @@ accept = [
   "new dial host:port op reuses the run auth + streaming machinery",
   "ships only after TLS (KN-AUTH-040); refuses to run over a plaintext link",
 ]
-notes = "Deferred 2026-09-02 with TLS in place: it would be the eighth command (docs/04-cli.md: seven by design), and its use cases are already served — a Tailscale exit node for the laptop-on-hotel-Wi-Fi case, macOS Internet Sharing for a Thunderbolt-only machine. Revisit only if real usage asks for it."
+notes = "Shipped in v0.4.1 as the deliberate eighth command, now that TLS makes a tunnel safe. A new `dial` op splices raw bytes over the run transport; the client is a SOCKS5 listener on 127.0.0.1. One op per connection is preserved; dial is that op."
 
 # ────────────────────────────── backlog items ─────────────────────────────
 
@@ -608,7 +608,7 @@ id = "KN-XPORT-050"
 title = "Connection reuse: upgrade the info probe into the following run"
 area = "XPORT"
 milestone = "backlog"
-status = "deferred"
+status = "done"
 priority = "p2"
 size = "M"
 depends = ["KN-XPORT-001", "KN-CLIENT-002"]
@@ -617,14 +617,14 @@ accept = [
   "the winning peer's info-probe connection is reused for run, saving one dial+handshake",
   "measured RTT saving justifies the added protocol state",
 ]
-notes = "Deferred: real but small win; v1 keeps one-op-per-connection for the one-page protocol."
+notes = "Shipped in v0.4.1. A connection is authenticated once; an info op may be followed by a run on the same connection, saving a dial + TLS handshake (a full round trip plus the TLS setup, meaningful on higher-latency links). A v0.4.0 agent closes after info, so a failed reuse falls back to a fresh dial — verified against a real v0.4.0 agent."
 
 [[item]]
 id = "KN-CORE-050"
 title = "Windows client build (agent stays out of scope)"
 area = "CORE"
 milestone = "backlog"
-status = "deferred"
+status = "done"
 priority = "p2"
 size = "M"
 depends = ["KN-CORE-001"]
@@ -633,4 +633,4 @@ accept = [
   "client subcommands build and run on Windows",
   "agent explicitly unsupported (needs job-object process control)",
 ]
-notes = "Deferred: client is conceivable; agent needs job-object work not worth it yet."
+notes = "Shipped in v0.4.1. The agent files carry a !windows build tag; a windows stub makes `knit up`/`down` report the agent is unsupported, while run/gauge/each/key/join/proxy work. proto.ExitStatus splits the signal-death mapping per platform. Windows amd64/arm64 binaries are in the release."

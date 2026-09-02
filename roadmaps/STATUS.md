@@ -3,15 +3,15 @@
 > Generated from `registry.toml` by `roadmaps/tools/roadmap.py render`.
 > Do not hand-edit — change the registry and re-render.
 
-**36 items** across **4 milestones** plus backlog · **32 done**
+**36 items** across **4 milestones** plus backlog · **35 done**
 
 ## Rollup
 
 | Status | Count |   | Priority | Count |
 | ------ | ----: | - | -------- | ----: |
 | ready | 1 |   | p0 | 15 |
-| done | 32 |   | p1 | 14 |
-| deferred | 3 |   | p2 | 7 |
+| done | 35 |   | p1 | 14 |
+|  |  |   | p2 | 7 |
 
 ## m1 · v0.1 — the fabric
 
@@ -81,7 +81,7 @@
 *TLS with pinned certs, reboot-persistent agents, and network sharing via SOCKS.*
 
 ```
-██████████████████░░░░░░  3/4
+████████████████████████  4/4
 ```
 
 | # | ID | Item | Status | Pri | Sz | Depends |
@@ -89,26 +89,20 @@
 | 1 | `KN-AUTH-041` | Key rotation UX: knit key --rotate | done | p2 | S | KN-AUTH-001 |
 | 12 | `KN-OPS-040` | launchd/systemd install: knit up --forever | done | p1 | M | KN-AGENT-001 |
 | 17 | `KN-AUTH-040` | TLS 1.3 with a key-bound handshake | done | p0 | L | KN-XPORT-001, KN-AUTH-001 |
-| 28 | `KN-NET-040` | knit proxy: share a peer's network via local SOCKS5 | deferred | p2 | L | KN-AUTH-040 |
+| 28 | `KN-NET-040` | knit proxy: share a peer's network via local SOCKS5 | done | p2 | L | KN-AUTH-040 |
 
 ## backlog · — — backlog
 
 *Measured future wins deferred by choice, kept coded so they are never lost.*
 
 ```
-░░░░░░░░░░░░░░░░░░░░░░░░  0/2
+████████████████████████  2/2
 ```
 
 | # | ID | Item | Status | Pri | Sz | Depends |
 | -: | -- | ---- | ------ | --- | -- | ------- |
-| 25 | `KN-CORE-050` | Windows client build (agent stays out of scope) | deferred | p2 | M | KN-CORE-001 |
-| 35 | `KN-XPORT-050` | Connection reuse: upgrade the info probe into the following run | deferred | p2 | M | KN-XPORT-001, KN-CLIENT-002 |
-
-## Blocked / deferred
-
-- `KN-NET-040` **deferred** — knit proxy: share a peer's network via local SOCKS5 · Deferred 2026-09-02 with TLS in place: it would be the eighth command (docs/04-cli.md: seven by design), and its use cases are already served — a Tailscale exit node for the laptop-on-hotel-Wi-Fi case, macOS Internet Sharing for a Thunderbolt-only machine. Revisit only if real usage asks for it.
-- `KN-XPORT-050` **deferred** — Connection reuse: upgrade the info probe into the following run · Deferred: real but small win; v1 keeps one-op-per-connection for the one-page protocol.
-- `KN-CORE-050` **deferred** — Windows client build (agent stays out of scope) · Deferred: client is conceivable; agent needs job-object work not worth it yet.
+| 25 | `KN-CORE-050` | Windows client build (agent stays out of scope) | done | p2 | M | KN-CORE-001 |
+| 35 | `KN-XPORT-050` | Connection reuse: upgrade the info probe into the following run | done | p2 | M | KN-XPORT-001, KN-CLIENT-002 |
 
 ## Suggested build order (dependency topological sort)
 
