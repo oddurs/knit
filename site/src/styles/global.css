@@ -82,13 +82,30 @@ footer.bottom { color: var(--muted); font-size: 0.85rem; padding: 3rem 0 2rem; b
 .prose th { font-weight: 600; }
 
 /* Landing */
-.hero { padding: 4rem 0 2rem; max-width: var(--measure); }
+.hero { padding: 4rem 0 1.5rem; max-width: var(--measure); }
 .hero h1 { font-size: 3rem; line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 0.75rem; }
-.hero .tag { font-size: 1.35rem; color: var(--muted); margin: 0 0 2rem; line-height: 1.4; }
-.hero pre { font-size: 1rem; }
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem 2rem; margin: 2.5rem 0; max-width: 60ch; }
-.facts div b { display: block; font-size: 1.6rem; letter-spacing: -0.02em; font-weight: 650; }
-.facts div span { color: var(--muted); font-size: 0.9rem; }
-.pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 2rem; margin: 2rem 0 3rem; }
-.pillars h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
-.pillars p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.hero .tag { font-size: 1.3rem; color: var(--muted); margin: 0; line-height: 1.4; max-width: 34em; }
+
+.demo { max-width: 52rem; margin: 1.5rem 0 0; }
+.step { margin: 2.25rem 0; }
+.step h2 { font-size: 1.15rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 0.6rem; }
+.step h2 span { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.step p { margin: 0 0 0.7rem; color: var(--muted); }
+
+.term {
+  --t-bg: #141414; --t-fg: #e6e6e6; --t-dim: #8a8a8a; --t-ps: #6fcf97;
+  background: var(--t-bg); color: var(--t-fg);
+  margin: 0; padding: 1rem 1.2rem; border-radius: 10px; overflow-x: auto;
+  font: 0.88rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  tab-size: 4;
+}
+@media (prefers-color-scheme: dark) { .term { --t-bg: #1a1a1a; box-shadow: inset 0 0 0 1px var(--rule); } }
+.term .cmd { color: var(--t-fg); font-weight: 600; }
+.term .ps { color: var(--t-ps); font-weight: 400; }
+.term .note { color: var(--t-dim); font-style: italic; }
+.term .out { color: var(--t-dim); }
+
+.explain { max-width: var(--measure); margin: 3rem 0 0; }
+.explain p { margin: 0 0 1rem; }
+.explain code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+.explain .links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; margin-top: 1.5rem; }

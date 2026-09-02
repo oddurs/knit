@@ -1,0 +1,15 @@
+---
+// Term renders a terminal transcript. Lines starting with "$ " are commands,
+// "# " are comments, everything else is output. No highlighter, no script.
+const { lines } = Astro.props;
+const rows = lines.trim().split('\n').map((l) => {
+  if (l.startsWith('$ ')) return { kind: 'cmd', text: l.slice(2) };
+  if (l.startsWith('# ')) return { kind: 'note', text: l.slice(2) };
+  return { kind: 'out', text: l };
+});
+---
+<pre class="term">{rows.map((r) =>
+  r.kind === 'cmd' ? <span class="cmd"><span class="ps">$ </span>{r.text}{'\n'}</span>
+  : r.kind === 'note' ? <span class="note">{r.text}{'\n'}</span>
+  : <span class="out">{r.text}{'\n'}</span>
+)}</pre>
