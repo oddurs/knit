@@ -46,22 +46,30 @@ changelog:
       - "^test:"
       - "^chore:"
 
-# Publishes a formula to the oddurs/homebrew-tap repository so users can
-# `brew install oddurs/tap/knit`. Requires a repo-scoped PAT in the release
-# environment as HOMEBREW_TAP_GITHUB_TOKEN (a default GITHUB_TOKEN cannot push
-# to a second repository). Until that secret and the tap repo exist, set
-# skip_upload to keep releases green while still generating the formula artifact.
-brews:
+# Publishes a cask to oddurs/homebrew-tap so `brew install oddurs/tap/knit`
+# works. The push goes over SSH with a deploy key scoped to the tap repository
+# (secret HOMEBREW_TAP_DEPLOY_KEY on this repo); no personal token is involved.
+homebrew_casks:
   - name: knit
     repository:
       owner: oddurs
       name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      git:
+        url: "git@github.com:oddurs/homebrew-tap.git"
+        private_key: "{{ .Env.HOMEBREW_TAP_DEPLOY_KEY }}"
+    commit_author:
+      name: knit release
+      email: releases@knit.invalid
     homepage: "https://github.com/oddurs/knit"
     description: "Weave your machines into one fabric. Zero-config compute sharing."
     license: "MIT"
-    skip_upload: "{{ .Env.SKIP_BREW }}"
-    install: |
-      bin.install "knit"
-    test: |
-      system "#{bin}/knit", "--version"
+    skip_upload: auto
+    binaries:
+      - knit
+    hooks:
+      post:
+        # The binary is not notarized; strip the quarantine bit so it runs.
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/knit"]
+          end

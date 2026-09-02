@@ -27,12 +27,15 @@ RPC, exo) run on top with one command instead of a page of setup.
 ## Install
 
 ```sh
-# From source (Go 1.26+)
-go install github.com/oddurs/knit/cmd/knit@latest
+# macOS
+brew install oddurs/tap/knit
 
-# Homebrew (once the tap is published)
-# brew install oddurs/tap/knit
+# Any platform, from source (Go 1.26+)
+go install github.com/oddurs/knit/cmd/knit@latest
 ```
+
+Linux binaries for amd64 and arm64 are on the
+[releases page](https://github.com/oddurs/knit/releases).
 
 ## Quickstart
 

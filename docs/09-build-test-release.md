@@ -63,11 +63,11 @@ GitHub Actions, on push and PR:
   [`.github/workflows/release.yml`](../.github/workflows/release.yml) on the tag,
   builds the four binaries, checksums, and a source archive, and cuts a GitHub
   release.
-- goreleaser publishes a formula to `oddurs/homebrew-tap`
+- goreleaser publishes a cask to `oddurs/homebrew-tap`
   ([`KN-OPS-021`](../roadmaps/milestones/m2-v0.2-real-use.md)) so `brew install
-  oddurs/tap/knit` is the headline install path. This needs the tap repo and a
-  repo-scoped `HOMEBREW_TAP_GITHUB_TOKEN` secret; until both exist, `SKIP_BREW`
-  keeps releases green while still generating the formula artifact.
+  oddurs/tap/knit` is the headline install path. The push uses a deploy key on
+  the tap repository, stored as the `HOMEBREW_TAP_DEPLOY_KEY` secret on this
+  repository — no personal token is involved.
 - `knit --version` prints the `-ldflags`-injected version so bug reports are
   precise.
 - Versioning follows the milestone line (v0.1 → v0.4 → v1.0); the wire protocol

@@ -25,7 +25,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Set SKIP_BREW=false and add a repo-scoped PAT once oddurs/homebrew-tap
-          # exists, to publish the formula automatically on each release:
-          SKIP_BREW: ${{ vars.SKIP_BREW || 'true' }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
