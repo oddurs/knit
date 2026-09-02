@@ -91,11 +91,17 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string) int {
 		}
 	}()
 
-	// Ctrl-C: closing the connection makes the agent reap the remote process.
+	// Ctrl-C: abort the connection with an RST (linger 0) rather than a clean
+	// FIN. The agent sees the resulting stdin read error and reaps the remote
+	// process group, so nothing is orphaned — even a silent process. A normal
+	// stdin EOF uses CloseWrite above, which the agent reads as a clean EOF.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sig
+		if tc, ok := sess.Conn.(*net.TCPConn); ok {
+			_ = tc.SetLinger(0)
+		}
 		sess.Conn.Close()
 	}()
 

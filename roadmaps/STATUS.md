@@ -3,15 +3,15 @@
 > Generated from `registry.toml` by `roadmaps/tools/roadmap.py render`.
 > Do not hand-edit — change the registry and re-render.
 
-**36 items** across **4 milestones** plus backlog · **18 done**
+**36 items** across **4 milestones** plus backlog · **19 done**
 
 ## Rollup
 
 | Status | Count |   | Priority | Count |
 | ------ | ----: | - | -------- | ----: |
-| in-progress | 1 |   | p0 | 15 |
-| done | 18 |   | p1 | 14 |
-| planned | 14 |   | p2 | 7 |
+| ready | 1 |   | p0 | 15 |
+| done | 19 |   | p1 | 14 |
+| planned | 13 |   | p2 | 7 |
 | blocked | 1 |   |  |  |
 | deferred | 2 |   |  |  |
 
@@ -20,7 +20,7 @@
 *Two machines, one cable or LAN: run / each / ls working end to end, fast and seamless.*
 
 ```
-██████████████████████░░  18/20
+███████████████████████░  19/20
 ```
 
 | # | ID | Item | Status | Pri | Sz | Depends |
@@ -33,7 +33,7 @@
 | 6 | `CX-SYS-001` | System info: cores, total memory, load1 (darwin+linux) | done | p0 | S | — |
 | 7 | `CX-AGENT-001` | Agent: listener, auth gate, op dispatch, up/up -d/down | done | p0 | L | CX-PROTO-001, CX-AUTH-001, CX-SYS-001, CX-DISC-001 |
 | 8 | `CX-EXEC-001` | Executor: spawn, stream stdio, relay exit code | done | p0 | L | CX-AGENT-001, CX-PROTO-001 |
-| 9 | `CX-EXEC-010` | SIGINT forwarding: Ctrl-C reaches the remote process, no orphan | in-progress | p1 | M | CX-EXEC-001 |
+| 9 | `CX-EXEC-010` | SIGINT forwarding: Ctrl-C reaches the remote process, no orphan | done | p1 | M | CX-EXEC-001 |
 | 13 | `CX-SCHED-001` | Load-per-core scheduler with local candidate and --on | done | p0 | S | CX-SYS-001 |
 | 16 | `CX-XPORT-001` | Dial + handshake helper with socket tuning | done | p0 | M | CX-PROTO-001, CX-AUTH-001 |
 | 18 | `CX-CLIENT-001` | connex ls: parallel info probes, table + --json | done | p0 | M | CX-XPORT-001, CX-DISC-002, CX-SYS-001 |
@@ -44,7 +44,7 @@
 | 29 | `CX-OPS-001` | Static, CGo-free build with version stamping | done | p0 | S | CX-CORE-001 |
 | 32 | `CX-TEST-001` | Test harness: unit, protocol, loopback e2e, race, fuzz | done | p0 | M | CX-CORE-001 |
 | 33 | `CX-TEST-002` | CI: fmt, vet, staticcheck, race, cross-build, roadmap check | done | p1 | S | CX-TEST-001 |
-| 34 | `CX-TEST-003` | Two-machine manual matrix: Thunderbolt bridge + Wi-Fi | planned | p1 | S | CX-CORE-001 |
+| 34 | `CX-TEST-003` | Two-machine manual matrix: Thunderbolt bridge + Wi-Fi | ready | p1 | S | CX-CORE-001 |
 
 ## m2 · v0.2 — trustworthy under real use
 

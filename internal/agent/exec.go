@@ -75,11 +75,17 @@ func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
 		})
 	}
 
-	// Feed the remainder of the connection to stdin. A client full-close (Ctrl-C)
-	// or half-close both end this copy; we close stdin to propagate EOF.
+	// Feed the remainder of the connection to stdin. A clean stdin EOF (client
+	// CloseWrite) ends the copy with no error and we simply propagate EOF. An
+	// aborted connection (client Ctrl-C sends an RST) ends it with an error, so
+	// we reap the process group — this is how Ctrl-C reaches a silent remote
+	// process without a framed client->server channel (CONNEX2 formalizes it).
 	go func() {
-		_, _ = io.Copy(stdin, br)
+		_, cerr := io.Copy(stdin, br)
 		_ = stdin.Close()
+		if cerr != nil {
+			kill()
+		}
 	}()
 
 	fw := proto.NewFrameWriter(conn)

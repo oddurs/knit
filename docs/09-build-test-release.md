@@ -28,7 +28,7 @@ in CI, but the two-machine reality is verified by a documented manual smoke test
 | **loopback e2e** | `connex up -d`, `connex ls`, `echo hi \| connex run --on $(hostname -s) -- cat` | scripted; runs on one machine, exercises the whole stack against the local agent |
 | **race** | the pump/exit goroutines | `go test -race ./...` in CI, non-negotiable |
 | **fuzz** | frame reader (`len` bounds, truncation) and the JSON handshake parser | `go test -fuzz`, seeded corpus committed |
-| **manual matrix** | two machines over Thunderbolt bridge and over Wi-Fi | documented checklist in the v0.1 roadmap; run before each tagged release |
+| **manual matrix** | two machines over Thunderbolt bridge and over Wi-Fi | [`manual-test.md`](manual-test.md) checklist; run before each tagged release |
 
 Coverage is a signal, not a target; the framing, auth, and exit-code paths are the
 ones that must be near-total because they are where a bug corrupts data or lies

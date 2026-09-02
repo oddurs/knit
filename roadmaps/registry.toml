@@ -184,7 +184,7 @@ id = "CX-EXEC-010"
 title = "SIGINT forwarding: Ctrl-C reaches the remote process, no orphan"
 area = "EXEC"
 milestone = "m1"
-status = "in-progress"
+status = "done"
 priority = "p1"
 size = "M"
 depends = ["CX-EXEC-001"]
@@ -345,7 +345,7 @@ id = "CX-TEST-003"
 title = "Two-machine manual matrix: Thunderbolt bridge + Wi-Fi"
 area = "TEST"
 milestone = "m1"
-status = "planned"
+status = "ready"
 priority = "p1"
 size = "S"
 depends = ["CX-CORE-001"]
@@ -355,6 +355,7 @@ accept = [
   "records observed streaming throughput on the cable for the performance doc",
   "run before every tagged release",
 ]
+notes = "Checklist committed at docs/manual-test.md; execution needs a second physical machine (Thunderbolt + Wi-Fi)."
 
 [[item]]
 id = "CX-DOC-001"

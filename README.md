@@ -88,9 +88,14 @@ encryption (TLS 1.3 with pinned certs) is planned for v0.4. See
 
 ## Status
 
-v0.1 (the fabric) is in progress: `up`/`down`/`ls`/`run`/`each`/`key`/`join` work
-end to end over loopback and LAN. Track progress in
-[`roadmaps/STATUS.md`](roadmaps/STATUS.md).
+v0.1 (the fabric) is functionally complete. `up`/`down`/`ls`/`run`/`each`/`key`/`join`
+work end to end; stdin/stdout/stderr stream binary-clean, exit codes are relayed,
+and Ctrl-C reaps the remote process with no orphan. The whole suite — unit,
+in-process protocol e2e, and the process-reaping test — runs under `-race`, and
+the frame hot path is guarded at zero allocations per frame. The one remaining
+v0.1 item is the two-machine manual matrix over a real Thunderbolt link and Wi-Fi
+(see [`docs/manual-test.md`](docs/manual-test.md)); it needs a second machine to
+run. Track everything in [`roadmaps/STATUS.md`](roadmaps/STATUS.md).
 
 ## License
 
