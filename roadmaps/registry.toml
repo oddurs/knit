@@ -25,7 +25,7 @@ goal = "Signals, explicit peers, working-dir sync, and a real install path."
 id = "m3"
 version = "v0.3"
 name = "AI-native scheduling"
-status = "planned"
+status = "done"
 goal = "Free-memory and accelerator reporting, memory-aware placement, MLX/torchrun sugar, link awareness."
 
 [[milestone]]
@@ -474,7 +474,7 @@ id = "KN-SYS-030"
 title = "info grows mem_free_gb, gpu, accel"
 area = "SYS"
 milestone = "m3"
-status = "planned"
+status = "done"
 priority = "p1"
 size = "M"
 depends = ["KN-SYS-001"]
@@ -490,7 +490,7 @@ id = "KN-SCHED-030"
 title = "run --mem N and --arch placement filters"
 area = "SCHED"
 milestone = "m3"
-status = "planned"
+status = "done"
 priority = "p1"
 size = "S"
 depends = ["KN-SYS-030", "KN-SCHED-001"]
@@ -506,7 +506,7 @@ id = "KN-CLIENT-030"
 title = "Link-speed awareness: prefer wired address, show link in ls"
 area = "CLIENT"
 milestone = "m3"
-status = "planned"
+status = "done"
 priority = "p2"
 size = "M"
 depends = ["KN-CLIENT-020", "KN-DISC-001"]
@@ -519,19 +519,20 @@ accept = [
 
 [[item]]
 id = "KN-AI-030"
-title = "knit hostfile and knit mpirun sugar"
+title = "Ranked multi-node launch: each exports rank, hosts, and an MLX hostfile"
 area = "AI"
 milestone = "m3"
-status = "planned"
+status = "done"
 priority = "p2"
 size = "M"
 depends = ["KN-SYS-030", "KN-CLIENT-001"]
 spec = "docs/05-ai-workloads.md"
 accept = [
-  "knit hostfile emits an MLX/torchrun-compatible host list from ls --json",
-  "knit mpirun -- <cmd> launches the ranked hosts with streamed logs",
+  "every process knit each launches gets KNIT_RANK/KNIT_NNODES/KNIT_HOSTS/KNIT_MASTER",
+  "MLX_RANK and an MLX-format MLX_HOSTFILE are set so mlx distributed starts as is",
   "one-command MLX distributed and torchrun --nnodes flows documented",
 ]
+notes = "Re-cut from `knit hostfile` + `knit mpirun`: the CLI is seven commands by design (docs/04-cli.md), and the capability is fully expressible as environment on the existing fan-out. Rank 0 is the launching machine; peers follow by spare capacity."
 
 # ──────────────────────────────── m4 items ────────────────────────────────
 

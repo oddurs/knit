@@ -3,15 +3,15 @@
 > Generated from `registry.toml` by `roadmaps/tools/roadmap.py render`.
 > Do not hand-edit — change the registry and re-render.
 
-**36 items** across **4 milestones** plus backlog · **25 done**
+**36 items** across **4 milestones** plus backlog · **29 done**
 
 ## Rollup
 
 | Status | Count |   | Priority | Count |
 | ------ | ----: | - | -------- | ----: |
 | ready | 1 |   | p0 | 15 |
-| done | 25 |   | p1 | 14 |
-| planned | 7 |   | p2 | 7 |
+| done | 29 |   | p1 | 14 |
+| planned | 3 |   | p2 | 7 |
 | blocked | 1 |   |  |  |
 | deferred | 2 |   |  |  |
 
@@ -68,15 +68,15 @@
 *Free-memory and accelerator reporting, memory-aware placement, MLX/torchrun sugar, link awareness.*
 
 ```
-░░░░░░░░░░░░░░░░░░░░░░░░  0/4
+████████████████████████  4/4
 ```
 
 | # | ID | Item | Status | Pri | Sz | Depends |
 | -: | -- | ---- | ------ | --- | -- | ------- |
-| 14 | `KN-SYS-030` | info grows mem_free_gb, gpu, accel | planned | p1 | M | KN-SYS-001 |
-| 15 | `KN-SCHED-030` | run --mem N and --arch placement filters | planned | p1 | S | KN-SYS-030, KN-SCHED-001 |
-| 19 | `KN-AI-030` | knit hostfile and knit mpirun sugar | planned | p2 | M | KN-SYS-030, KN-CLIENT-001 |
-| 23 | `KN-CLIENT-030` | Link-speed awareness: prefer wired address, show link in ls | planned | p2 | M | KN-CLIENT-020, KN-DISC-001 |
+| 14 | `KN-SYS-030` | info grows mem_free_gb, gpu, accel | done | p1 | M | KN-SYS-001 |
+| 15 | `KN-SCHED-030` | run --mem N and --arch placement filters | done | p1 | S | KN-SYS-030, KN-SCHED-001 |
+| 19 | `KN-AI-030` | Ranked multi-node launch: each exports rank, hosts, and an MLX hostfile | done | p2 | M | KN-SYS-030, KN-CLIENT-001 |
+| 23 | `KN-CLIENT-030` | Link-speed awareness: prefer wired address, show link in ls | done | p2 | M | KN-CLIENT-020, KN-DISC-001 |
 
 ## m4 · v0.4 — encrypted, persistent, shareable
 
