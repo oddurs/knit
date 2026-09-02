@@ -1,0 +1,54 @@
+---
+import Base from '../layouts/Base.astro';
+import { Code } from 'astro:components';
+const base = import.meta.env.BASE_URL;
+const install = `brew install oddurs/tap/knit`;
+const quick = `knit up -d                 # on each machine, once
+knit key                   # on machine A → 64 hex chars
+knit join <key>            # on machine B
+knit run -- ffmpeg -i big.mov out.mp4
+knit → studio              # ran where there was headroom; output streamed back`;
+---
+<Base>
+  <section class="hero">
+    <h1>knit</h1>
+    <p class="tag">Weave your machines into one fabric. Zero config, one binary, and commands that behave as if they ran here.</p>
+    <Code code={install} lang="sh" themes={{ light: 'github-light', dark: 'github-dark' }} />
+    <Code code={quick} lang="sh" themes={{ light: 'github-light', dark: 'github-dark' }} />
+    <p>
+      <a href={`${base}docs/`}>Read the docs</a> ·
+      <a href={`${base}docs/cli/`}>CLI reference</a> ·
+      <a href={`${base}docs/ai-workloads/`}>AI workloads</a>
+    </p>
+  </section>
+
+  <section class="facts">
+    <div><b>1</b><span>static binary</span></div>
+    <div><b>1</b><span>dependency (mDNS)</span></div>
+    <div><b>7</b><span>commands</span></div>
+    <div><b>0</b><span>allocations per frame</span></div>
+    <div><b>9 ns</b><span>per frame written</span></div>
+    <div><b>0</b><span>config files</span></div>
+  </section>
+
+  <section class="pillars">
+    <div>
+      <h3>Simple</h3>
+      <p><code>knit up</code> makes a machine discoverable capacity. <code>knit run -- cmd</code> puts the work where the headroom is. Pairing is one key, pasted once. Nothing to configure, nothing to name.</p>
+    </div>
+    <div>
+      <h3>Fast</h3>
+      <p>mDNS on every interface, so a Thunderbolt cable is just a faster link. Streaming stdio is line-rate: one vectored write per frame and nothing allocated on the hot path.</p>
+    </div>
+    <div>
+      <h3>Seamless</h3>
+      <p>Exit codes, stdin EOF, pipes, Ctrl-C: byte-for-byte as local, and nothing left orphaned. knit prints one dim line only when the work left the machine.</p>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2>For small AI clusters</h2>
+    <p>Every machine reports free memory and its accelerator. <code>knit run --mem 48 -- …</code> refuses machines that cannot hold the job. <code>knit each</code> hands every process its rank, the host list, and an MLX hostfile, so distributed inference is one command instead of a page of setup.</p>
+    <p>Works over a Thunderbolt bridge, Ethernet, Wi-Fi, or a Tailscale tailnet with <code>--peer host</code>. macOS and Linux, Apple silicon and x86.</p>
+  </section>
+</Base>
