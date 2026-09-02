@@ -3,16 +3,15 @@
 > Generated from `registry.toml` by `roadmaps/tools/roadmap.py render`.
 > Do not hand-edit — change the registry and re-render.
 
-**36 items** across **4 milestones** plus backlog · **17 done**
+**36 items** across **4 milestones** plus backlog · **18 done**
 
 ## Rollup
 
 | Status | Count |   | Priority | Count |
 | ------ | ----: | - | -------- | ----: |
 | in-progress | 1 |   | p0 | 15 |
-| review | 1 |   | p1 | 14 |
-| done | 17 |   | p2 | 7 |
-| planned | 14 |   |  |  |
+| done | 18 |   | p1 | 14 |
+| planned | 14 |   | p2 | 7 |
 | blocked | 1 |   |  |  |
 | deferred | 2 |   |  |  |
 
@@ -21,7 +20,7 @@
 *Two machines, one cable or LAN: run / each / ls working end to end, fast and seamless.*
 
 ```
-████████████████████░░░░  17/20
+██████████████████████░░  18/20
 ```
 
 | # | ID | Item | Status | Pri | Sz | Depends |
@@ -44,7 +43,7 @@
 | 27 | `CX-DOC-001` | Repo-root README, SECURITY.md, quickstart | done | p1 | S | CX-CORE-001 |
 | 29 | `CX-OPS-001` | Static, CGo-free build with version stamping | done | p0 | S | CX-CORE-001 |
 | 32 | `CX-TEST-001` | Test harness: unit, protocol, loopback e2e, race, fuzz | done | p0 | M | CX-CORE-001 |
-| 33 | `CX-TEST-002` | CI: fmt, vet, staticcheck, race, cross-build, roadmap check | review | p1 | S | CX-TEST-001 |
+| 33 | `CX-TEST-002` | CI: fmt, vet, staticcheck, race, cross-build, roadmap check | done | p1 | S | CX-TEST-001 |
 | 34 | `CX-TEST-003` | Two-machine manual matrix: Thunderbolt bridge + Wi-Fi | planned | p1 | S | CX-CORE-001 |
 
 ## m2 · v0.2 — trustworthy under real use
