@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
-const { title, description = 'Share compute across your machines with zero config.' } = Astro.props;
+const { title, frontmatter } = Astro.props;
+const pageTitle = title ?? frontmatter?.title;
 const base = import.meta.env.BASE_URL;
 const here = Astro.url.pathname;
 const inDocs = here.startsWith(base + 'docs');
@@ -10,8 +11,8 @@ const inDocs = here.startsWith(base + 'docs');
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title ? `${title} · knit` : 'knit — weave your machines into one fabric'}</title>
-    <meta name="description" content={description} />
+    <title>{pageTitle ? `${pageTitle} · knit` : 'knit — share hardware with the machines around you'}</title>
+    <meta name="description" content="Share compute across your machines with zero config." />
     <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
   </head>
   <body>
@@ -24,7 +25,7 @@ const inDocs = here.startsWith(base + 'docs');
           <a href="https://github.com/oddurs/knit">GitHub</a>
         </nav>
       </header>
-      <slot />
+      {inDocs ? <slot /> : <main><slot /></main>}
       <footer class="bottom">
         knit is a single static Go binary. One dependency, seven commands, a protocol that fits on a page.
         Curious how it is built? The <a href="https://github.com/oddurs/knit/tree/main/docs">engineering docs</a> are in the repository.

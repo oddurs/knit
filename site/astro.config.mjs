@@ -11,6 +11,6 @@ export default defineConfig({
   preview: { port: 1212 },
   build: { format: 'directory' },
   markdown: {
-    shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
+    syntaxHighlight: false, // one monochrome code block everywhere
   },
 });
