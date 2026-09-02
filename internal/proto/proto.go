@@ -10,8 +10,11 @@
 // server streams typed frames back. See docs/03-protocol.md.
 package proto
 
-// Version is the protocol version the client advertises in Request.V.
-const Version = 2
+// Version is the protocol version the client advertises in Request.V. v3 is
+// the TLS generation: the connection is TLS 1.3 and both proofs are bound to
+// it. A v2 agent cannot be reached by a v3 client, and vice versa; each side
+// says so plainly instead of hanging.
+const Version = 3
 
 // Magic is the greeting token prefixing the server nonce line.
 const Magic = "KNIT1"
@@ -79,6 +82,9 @@ type Envelope struct {
 	OK    bool   `json:"ok"`
 	Error string `json:"error,omitempty"`
 	Code  string `json:"code,omitempty"`
+	// Proof is the server's HMAC over the nonce and this connection's channel
+	// binding; the client checks it so an impostor agent is refused.
+	Proof string `json:"proof,omitempty"`
 
 	// Capacity, populated for op "info".
 	Name      string  `json:"name,omitempty"`

@@ -45,7 +45,8 @@ func Run(p Placement, cmd []string) int {
 		return 1
 	}
 
-	cands := append([]scheduler.Candidate{localCandidate()}, probePeers(key, false)...)
+	peers, _ := probePeers(key, false)
+	cands := append([]scheduler.Candidate{localCandidate()}, peers...)
 	cands, why := scheduler.Filter(cands, p.MemGB, p.Arch)
 	if why != "" {
 		fmt.Fprintln(os.Stderr, "knit:", why)

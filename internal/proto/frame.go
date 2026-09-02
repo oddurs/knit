@@ -4,26 +4,29 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"net"
 	"sync"
 )
 
+// coalesce is the largest payload the writer joins with its header into a
+// single write; it matches the pump buffer so steady-state streaming is one
+// write per frame. Larger payloads take two writes.
+const coalesce = 64 * 1024
+
 // FrameWriter serializes typed frames onto a writer. It is safe for use by
-// multiple goroutines (the stdout and stderr pumps share one). Each frame is
-// written with a single vectored write (header+payload) when the underlying
-// writer is a net.Conn, so there is one writev(2) per frame. The header buffer
-// and the two-element iovec are held on the writer and reused under the lock,
-// so steady-state framing allocates nothing beyond the caller's payload.
+// multiple goroutines (the stdout and stderr pumps share one). Header and
+// payload are joined in a buffer held on the writer, so each frame is one
+// write and, over TLS, one record sequence, and steady-state framing allocates
+// nothing beyond the caller's payload.
 type FrameWriter struct {
-	mu   sync.Mutex
-	w    io.Writer
-	hdr  [5]byte
-	back [2][]byte
-	bufs net.Buffers // reused iovec; kept on the struct so it never escapes
+	mu  sync.Mutex
+	w   io.Writer
+	buf []byte
 }
 
 // NewFrameWriter wraps w.
-func NewFrameWriter(w io.Writer) *FrameWriter { return &FrameWriter{w: w} }
+func NewFrameWriter(w io.Writer) *FrameWriter {
+	return &FrameWriter{w: w, buf: make([]byte, 5+coalesce)}
+}
 
 // Write emits one frame of type t carrying p.
 func (fw *FrameWriter) Write(t byte, p []byte) error {
@@ -33,17 +36,17 @@ func (fw *FrameWriter) Write(t byte, p []byte) error {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
 
-	fw.hdr[0] = t
-	binary.BigEndian.PutUint32(fw.hdr[1:], uint32(len(p)))
-	if len(p) == 0 {
-		_, err := fw.w.Write(fw.hdr[:])
+	fw.buf[0] = t
+	binary.BigEndian.PutUint32(fw.buf[1:5], uint32(len(p)))
+	if len(p) <= coalesce {
+		n := 5 + copy(fw.buf[5:], p)
+		_, err := fw.w.Write(fw.buf[:n])
 		return err
 	}
-	// Reuse the struct-held backing array so no slice header escapes to the heap.
-	fw.back[0] = fw.hdr[:]
-	fw.back[1] = p
-	fw.bufs = fw.back[:2]
-	_, err := fw.bufs.WriteTo(fw.w) // one writev(2) on a net.Conn
+	if _, err := fw.w.Write(fw.buf[:5]); err != nil {
+		return err
+	}
+	_, err := fw.w.Write(p)
 	return err
 }
 

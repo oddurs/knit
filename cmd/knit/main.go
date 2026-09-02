@@ -19,8 +19,10 @@ var version = "dev"
 const usage = `knit — weave your machines into one fabric. Zero config.
 
 Usage:
-  knit up [-d]              start sharing this machine (-d: background)
-  knit down                stop the background agent
+  knit up [-d|--forever]   start sharing this machine
+                           (-d: background; --forever: at every login, via
+                           launchd/systemd, restarted if it stops)
+  knit down                stop the agent, however it was started
   knit gauge [--json]      show machines and their capacity  (alias: ls)
   knit run [--on NAME] [--mem GB] [--arch ARCH] [--dir] [--sync] -- CMD [ARGS...]
                            run a command on the machine with most headroom
@@ -30,7 +32,8 @@ Usage:
                            run a command on every machine at once, with
                            KNIT_RANK/KNIT_NNODES/KNIT_HOSTS/KNIT_MASTER and
                            MLX_RANK/MLX_HOSTFILE set for multi-node launchers
-  knit key                 print this machine's cluster key
+  knit key [--rotate]      print this machine's cluster key
+                           (--rotate: replace it and say who must re-join)
   knit join KEY            join the fabric that key belongs to
 
   knit --version           print version
@@ -54,8 +57,14 @@ func run(args []string) int {
 		fmt.Println("knit", version)
 		return 0
 	case "up":
-		detach := len(args) > 1 && (args[1] == "-d" || args[1] == "--detach")
-		if err := agent.Up(detach); err != nil {
+		mode := agent.Foreground
+		if hasFlag(args[1:], "-d") || hasFlag(args[1:], "--detach") {
+			mode = agent.Detached
+		}
+		if hasFlag(args[1:], "--forever") {
+			mode = agent.Forever
+		}
+		if err := agent.Up(mode); err != nil {
 			fmt.Fprintln(os.Stderr, "knit:", err)
 			return 1
 		}
@@ -84,6 +93,9 @@ func run(args []string) int {
 		}
 		return client.Each(cmd)
 	case "key":
+		if hasFlag(args[1:], "--rotate") {
+			return client.Rotate()
+		}
 		k, err := keys.Print()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "knit:", err)

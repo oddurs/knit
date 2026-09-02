@@ -1,12 +1,17 @@
-// Package transport dials an agent and performs the KNIT1 client handshake:
-// read the nonce, prove knowledge of the cluster key with an HMAC, send the
-// request, and read the server's reply envelope. TCP_NODELAY is set on connect
-// because knit streams many small frames interactively. See docs/03-protocol.md.
+// Package transport dials an agent and performs the client handshake: a TLS
+// 1.3 connection first, then over it the KNIT1 exchange — read the nonce,
+// prove knowledge of the cluster key with an HMAC bound to this connection,
+// send the request, read the reply, and check the server's own proof. The
+// server's certificate is ephemeral and never verified; the key-bound proofs
+// are what authenticate both ends. TCP_NODELAY is set because knit streams
+// many small frames interactively. See docs/03-protocol.md.
 package transport
 
 import (
 	"bufio"
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -43,15 +48,33 @@ func Dial(addr string, timeout time.Duration) (net.Conn, error) {
 	return conn, nil
 }
 
+// clientTLS never verifies the certificate: authentication comes from the
+// key-bound proofs, and the certificate only serves to key the channel.
+var clientTLS = &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS13}
+
 // Open dials addr, completes the handshake for req under key, and returns the
 // session. It sets a deadline around the handshake and clears it before return
 // so streaming is not time-bounded.
 func Open(addr string, key []byte, req proto.Request, dialTimeout time.Duration) (*Session, error) {
-	conn, err := Dial(addr, dialTimeout)
+	raw, err := Dial(addr, dialTimeout)
 	if err != nil {
 		return nil, err
 	}
+	conn := tls.Client(raw, clientTLS)
 	if err := conn.SetDeadline(time.Now().Add(HandshakeTimeout)); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	if err := conn.Handshake(); err != nil {
+		conn.Close()
+		var rh tls.RecordHeaderError
+		if errors.As(err, &rh) {
+			return nil, &ReplyError{Code: proto.CodeVersion, Msg: "runs an older knit that speaks plaintext — upgrade knit there"}
+		}
+		return nil, fmt.Errorf("tls: %w", err)
+	}
+	cb, err := ChannelBinding(conn)
+	if err != nil {
 		conn.Close()
 		return nil, err
 	}
@@ -69,7 +92,7 @@ func Open(addr string, key []byte, req proto.Request, dialTimeout time.Duration)
 	}
 
 	req.V = proto.Version
-	req.HMAC = keys.Sign(key, nonce)
+	req.HMAC = keys.ClientProof(key, nonce, cb)
 	line, _ := json.Marshal(req)
 	if _, err := conn.Write(append(line, '\n')); err != nil {
 		conn.Close()
@@ -90,11 +113,28 @@ func Open(addr string, key []byte, req proto.Request, dialTimeout time.Duration)
 		conn.Close()
 		return nil, &ReplyError{Code: reply.Code, Msg: reply.Error}
 	}
+	if !keys.Equal(keys.ServerProof(key, nonce, cb), reply.Proof) {
+		conn.Close()
+		return nil, &ReplyError{Code: proto.CodeUnauthorized,
+			Msg: "did not prove it holds this key (a different key, or something in the path)"}
+	}
 	if err := conn.SetDeadline(time.Time{}); err != nil {
 		conn.Close()
 		return nil, err
 	}
 	return &Session{Conn: conn, R: r, Reply: reply}, nil
+}
+
+// ChannelBinding derives 32 bytes unique to this TLS connection from its
+// keying material. Both ends compute the same value; a connection relayed by
+// a machine in the middle has a different one on each leg.
+func ChannelBinding(conn *tls.Conn) ([]byte, error) {
+	cs := conn.ConnectionState()
+	cb, err := cs.ExportKeyingMaterial("knit channel binding", nil, 32)
+	if err != nil {
+		return nil, fmt.Errorf("channel binding: %w", err)
+	}
+	return cb, nil
 }
 
 func parseGreeting(line string) (string, error) {

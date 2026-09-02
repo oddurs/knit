@@ -52,20 +52,27 @@ var extraPeers []string
 // are probed alongside (and merged with) mDNS-discovered peers.
 func AddExplicitPeers(hostPorts []string) { extraPeers = append(extraPeers, hostPorts...) }
 
+// peer is a dial target and whether the user named it (--peer, KNIT_PEERS)
+// rather than discovery finding it.
+type peer struct {
+	discovery.Peer
+	explicit bool
+}
+
 // gatherPeers merges mDNS-discovered peers (minus our own advertised agent) with
 // explicit peers from --peer and KNIT_PEERS, de-duplicated by host:port. Explicit
 // peers make knit work where multicast is unavailable, e.g. a Tailscale tailnet.
-func gatherPeers(fresh bool) []discovery.Peer {
+func gatherPeers(fresh bool) []peer {
 	self := sysinfo.Name()
-	var out []discovery.Peer
+	var out []peer
 	seen := map[string]bool{}
-	add := func(p discovery.Peer) {
+	add := func(p discovery.Peer, explicit bool) {
 		hp := p.HostPort()
 		if seen[hp] {
 			return
 		}
 		seen[hp] = true
-		out = append(out, p)
+		out = append(out, peer{p, explicit})
 	}
 
 	var mdns []discovery.Peer
@@ -78,43 +85,65 @@ func gatherPeers(fresh bool) []discovery.Peer {
 		if p.Name == self {
 			continue // our own agent
 		}
-		add(p)
+		add(p, false)
 	}
 	for _, p := range discovery.EnvPeers() {
-		add(p)
+		add(p, true)
 	}
 	for _, p := range discovery.ParsePeerList(extraPeers) {
-		add(p)
+		add(p, true)
 	}
 	return out
 }
 
+// probeFailure is an explicitly named peer that could not be used, and why.
+// Discovered peers that fail are dropped silently (a stale cache entry is
+// normal); a peer the user typed deserves an explanation.
+type probeFailure struct {
+	HostPort string
+	Err      error
+}
+
 // probePeers gathers candidate peers and probes each for live capacity in
 // parallel within the probe budget, returning the reachable, authorized ones
-// with the link they are reached over classified from the peer's address.
-func probePeers(key []byte, fresh bool) []scheduler.Candidate {
+// with the link they are reached over classified from the peer's address,
+// plus the failures among explicitly named peers.
+func probePeers(key []byte, fresh bool) ([]scheduler.Candidate, []probeFailure) {
 	peers := gatherPeers(fresh)
-	ch := make(chan *scheduler.Candidate, len(peers))
+	type result struct {
+		cand *scheduler.Candidate
+		fail *probeFailure
+	}
+	ch := make(chan result, len(peers))
 	budget := probeTimeout()
 	for _, p := range peers {
-		go func(p discovery.Peer) {
-			info, err := probeInfo(p, key, budget)
+		go func(p peer) {
+			info, err := probeInfo(p.Peer, key, budget)
 			if err != nil {
-				ch <- nil
+				var f *probeFailure
+				if p.explicit {
+					f = &probeFailure{p.HostPort(), err}
+				}
+				ch <- result{fail: f}
 				return
 			}
 			label, mbps := discovery.Link(p.Addr)
 			info.Link = label
-			ch <- &scheduler.Candidate{Name: info.Name, Addr: p.Addr, Port: p.Port, Info: info, LinkMbps: mbps}
+			ch <- result{cand: &scheduler.Candidate{Name: info.Name, Addr: p.Addr, Port: p.Port, Info: info, LinkMbps: mbps}}
 		}(p)
 	}
 	var res []scheduler.Candidate
+	var fails []probeFailure
 	for range peers {
-		if c := <-ch; c != nil {
-			res = append(res, *c)
+		r := <-ch
+		if r.cand != nil {
+			res = append(res, *r.cand)
+		}
+		if r.fail != nil {
+			fails = append(fails, *r.fail)
 		}
 	}
-	return res
+	return res, fails
 }
 
 func probeInfo(p discovery.Peer, key []byte, timeout time.Duration) (proto.Envelope, error) {

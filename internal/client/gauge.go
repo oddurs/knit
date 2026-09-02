@@ -20,7 +20,10 @@ func Gauge(jsonOut bool) int {
 		fmt.Fprintln(os.Stderr, "knit:", err)
 		return 1
 	}
-	cands := probePeers(key, true)
+	cands, fails := probePeers(key, true)
+	for _, f := range fails {
+		fmt.Fprintf(os.Stderr, "%s\n", dim("knit: "+f.HostPort+": "+f.Err.Error()))
+	}
 
 	self := sysinfo.Local()
 	self.Self = true

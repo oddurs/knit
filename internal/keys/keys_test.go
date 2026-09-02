@@ -6,21 +6,54 @@ import (
 	"testing"
 )
 
-func TestSignVerifyRoundTrip(t *testing.T) {
+func TestProofsAreBoundToKeyNonceAndChannel(t *testing.T) {
 	key := make([]byte, KeyLen)
 	for i := range key {
 		key[i] = byte(i)
 	}
-	sig := Sign(key, "abc123")
-	if !Verify(key, "abc123", sig) {
-		t.Fatal("valid signature rejected")
+	cb := []byte("channel-binding-of-this-connection")
+	c := ClientProof(key, "abc123", cb)
+	if !Equal(c, ClientProof(key, "abc123", cb)) {
+		t.Fatal("proof not deterministic")
 	}
-	if Verify(key, "abc124", sig) {
-		t.Fatal("signature verified against wrong nonce")
+	if Equal(c, ServerProof(key, "abc123", cb)) {
+		t.Fatal("client and server proofs must differ")
 	}
-	other := make([]byte, KeyLen)
-	if Verify(other, "abc123", sig) {
-		t.Fatal("signature verified under wrong key")
+	if Equal(c, ClientProof(key, "abc124", cb)) {
+		t.Fatal("proof ignored the nonce")
+	}
+	if Equal(c, ClientProof(key, "abc123", []byte("another connection"))) {
+		t.Fatal("proof ignored the channel binding — a relay would pass")
+	}
+	if Equal(c, ClientProof(make([]byte, KeyLen), "abc123", cb)) {
+		t.Fatal("proof ignored the key")
+	}
+}
+
+func TestRotateReplacesKeyAtomically(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KNIT_HOME", dir)
+	k1, err := LoadOrCreate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	k2, err := Rotate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(k1) == string(k2) {
+		t.Fatal("rotate kept the same key")
+	}
+	k3, _ := LoadOrCreate()
+	if string(k3) != string(k2) {
+		t.Fatal("rotated key not persisted")
+	}
+	entries, _ := os.ReadDir(dir)
+	if len(entries) != 1 || entries[0].Name() != "key" {
+		t.Fatalf("temp file left behind: %v", entries)
+	}
+	if info, _ := os.Stat(filepath.Join(dir, "key")); info.Mode().Perm() != 0o600 {
+		t.Fatalf("mode %v", info.Mode().Perm())
 	}
 }
 

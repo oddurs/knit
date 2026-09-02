@@ -1,14 +1,12 @@
 package client
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
 	"net"
+	"strings"
 	"testing"
 
-	"github.com/oddurs/knit/internal/keys"
-	"github.com/oddurs/knit/internal/proto"
+	"github.com/oddurs/knit/internal/agent"
+	"github.com/oddurs/knit/internal/sysinfo"
 )
 
 func clientTestKey() []byte {
@@ -19,43 +17,27 @@ func clientTestKey() []byte {
 	return k
 }
 
-// fakeInfoAgent is a minimal agent double: it completes the handshake and, for a
-// valid HMAC, replies with a fixed info envelope. It advertises nothing over
-// mDNS, so it is only reachable as an explicit peer.
-func fakeInfoAgent(t *testing.T, key []byte, name string) string {
+// fakeInfoAgent is a real agent handler on a loopback listener under the given
+// key. It advertises nothing over mDNS, so it is only reachable as an explicit
+// peer. It reports this machine's real name and capacity.
+func fakeInfoAgent(t *testing.T, key []byte) string {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { ln.Close() })
+	cfg, err := agent.TLSConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
 	go func() {
 		for {
 			c, err := ln.Accept()
 			if err != nil {
 				return
 			}
-			go func(c net.Conn) {
-				defer c.Close()
-				nonce, _ := keys.Nonce(16)
-				fmt.Fprintf(c, "%s %s\n", proto.Magic, nonce)
-				line, err := bufio.NewReader(c).ReadString('\n')
-				if err != nil {
-					return
-				}
-				var req proto.Request
-				if json.Unmarshal([]byte(line), &req) != nil {
-					return
-				}
-				var env proto.Envelope
-				if keys.Verify(key, nonce, req.HMAC) {
-					env = proto.Envelope{OK: true, Name: name, OS: "linux", Arch: "arm64", CPUs: 4, MemGB: 8, Load1: 0.1}
-				} else {
-					env = proto.Envelope{Code: proto.CodeUnauthorized, Error: "no"}
-				}
-				b, _ := json.Marshal(env)
-				c.Write(append(b, '\n'))
-			}(c)
+			go agent.Handle(c, cfg, key)
 		}
 	}()
 	return ln.Addr().String()
@@ -69,16 +51,16 @@ func TestExplicitPeerDiscoveredViaEnv(t *testing.T) {
 	t.Setenv("KNIT_HOME", t.TempDir())
 	t.Setenv("CONNEX_HOME", t.TempDir()) // belt and suspenders
 	key := clientTestKey()
-	addr := fakeInfoAgent(t, key, "studio")
+	addr := fakeInfoAgent(t, key)
 	t.Setenv("KNIT_PEERS", addr)
 
-	cands := probePeers(key, false)
+	cands, _ := probePeers(key, false)
 	var found *string
 	for i := range cands {
-		if cands[i].Name == "studio" {
+		if cands[i].Name == sysinfo.Name() {
 			n := cands[i].Info.Link
 			found = &n
-			if cands[i].Info.CPUs != 4 {
+			if cands[i].Info.CPUs < 1 {
 				t.Fatalf("wrong cpus: %d", cands[i].Info.CPUs)
 			}
 		}
@@ -96,11 +78,38 @@ func TestExplicitPeerDiscoveredViaEnv(t *testing.T) {
 func TestExplicitPeerRejectsWrongKey(t *testing.T) {
 	extraPeers = nil
 	t.Setenv("KNIT_HOME", t.TempDir())
-	addr := fakeInfoAgent(t, clientTestKey(), "studio")
+	addr := fakeInfoAgent(t, clientTestKey())
 	t.Setenv("KNIT_PEERS", addr)
 
 	wrong := make([]byte, 32) // all zeros
-	if cands := probePeers(wrong, false); len(cands) != 0 {
+	cands, fails := probePeers(wrong, false)
+	if len(cands) != 0 {
 		t.Fatalf("unauthorized peer was scheduled: %v", cands)
+	}
+	if len(fails) != 1 || !strings.Contains(fails[0].Err.Error(), "unauthorized") {
+		t.Fatalf("explicit peer failure not reported: %v", fails)
+	}
+}
+
+// TestOlderAgentReported: an explicitly named peer that still speaks plaintext
+// (knit ≤ v0.3) is reported as such, so a mixed-version fabric explains itself.
+func TestOlderAgentReported(t *testing.T) {
+	extraPeers = nil
+	t.Setenv("KNIT_HOME", t.TempDir())
+	ln, _ := net.Listen("tcp", "127.0.0.1:0")
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func() { defer c.Close(); c.Write([]byte("KNIT1 00\n")); c.Read(make([]byte, 1)) }()
+		}
+	}()
+	t.Setenv("KNIT_PEERS", ln.Addr().String())
+	cands, fails := probePeers(clientTestKey(), false)
+	if len(cands) != 0 || len(fails) != 1 || !strings.Contains(fails[0].Err.Error(), "older knit") {
+		t.Fatalf("cands=%v fails=%v", cands, fails)
 	}
 }

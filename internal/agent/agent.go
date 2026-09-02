@@ -1,14 +1,21 @@
 // Package agent is the server half of knit: it advertises this machine over
-// mDNS, authenticates each connection with an HMAC over a fresh nonce, and
-// serves the info and run operations. See docs/02-architecture.md.
+// mDNS, wraps every connection in TLS 1.3, authenticates it with an HMAC over
+// a fresh nonce bound to that connection, proves its own key back, and serves
+// the info and run operations. See docs/02-architecture.md.
 package agent
 
 import (
 	"bufio"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net"
 	"os"
 	"os/signal"
@@ -21,6 +28,7 @@ import (
 	"github.com/oddurs/knit/internal/keys"
 	"github.com/oddurs/knit/internal/proto"
 	"github.com/oddurs/knit/internal/sysinfo"
+	"github.com/oddurs/knit/internal/transport"
 )
 
 // authTimeout bounds how long a client has to complete the handshake.
@@ -31,6 +39,10 @@ const authTimeout = 10 * time.Second
 // SIGINT/SIGTERM.
 func Serve() error {
 	key, err := keys.LoadOrCreate()
+	if err != nil {
+		return err
+	}
+	cfg, err := TLSConfig()
 	if err != nil {
 		return err
 	}
@@ -63,7 +75,15 @@ func Serve() error {
 		close(stopping)
 		_ = ln.Close()
 	}()
-	return serve(ln, key, stopping)
+	// The key is re-read per connection so `knit key --rotate` takes effect
+	// without restarting the agent; the startup key is the fallback.
+	loadKey := func() []byte {
+		if k, err := keys.LoadOrCreate(); err == nil {
+			return k
+		}
+		return key
+	}
+	return serve(ln, cfg, loadKey, stopping)
 }
 
 // listen prefers the well-known port so `--peer host` works across restarts,
@@ -78,7 +98,7 @@ func listen() (net.Listener, error) {
 // serve accepts connections until stopping is closed (and ln with it). Other
 // accept errors — typically a transient fd shortage — are logged and retried
 // after a short pause rather than spun on.
-func serve(ln net.Listener, key []byte, stopping <-chan struct{}) error {
+func serve(ln net.Listener, cfg *tls.Config, loadKey func() []byte, stopping <-chan struct{}) error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -91,12 +111,50 @@ func serve(ln net.Listener, key []byte, stopping <-chan struct{}) error {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		go handleConn(conn, key)
+		go handleConn(conn, cfg, loadKey)
 	}
 }
 
-func handleConn(conn net.Conn, key []byte) {
-	defer conn.Close()
+// TLSConfig builds the agent's TLS configuration around a fresh self-signed
+// certificate. The certificate is ephemeral and never verified by clients;
+// it only keys the channel. Authentication is the key-bound proof exchange.
+func TLSConfig() (*tls.Config, error) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().UnixNano()),
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(10 * 365 * 24 * time.Hour),
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &priv.PublicKey, priv)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: priv}},
+		MinVersion:   tls.VersionTLS13,
+	}, nil
+}
+
+// Handle serves one accepted connection under a fixed key. Tests in other
+// packages use it to stand up a real agent on loopback.
+func Handle(conn net.Conn, cfg *tls.Config, key []byte) {
+	handleConn(conn, cfg, func() []byte { return key })
+}
+
+func handleConn(raw net.Conn, cfg *tls.Config, loadKey func() []byte) {
+	defer raw.Close()
+	_ = raw.SetDeadline(time.Now().Add(authTimeout))
+	conn := tls.Server(raw, cfg)
+	if err := conn.Handshake(); err != nil {
+		return
+	}
+	cb, err := transport.ChannelBinding(conn)
+	if err != nil {
+		return
+	}
 
 	nonce, err := keys.Nonce(16)
 	if err != nil {
@@ -105,8 +163,6 @@ func handleConn(conn net.Conn, key []byte) {
 	if _, err := fmt.Fprintf(conn, "%s %s\n", proto.Magic, nonce); err != nil {
 		return
 	}
-
-	_ = conn.SetReadDeadline(time.Now().Add(authTimeout))
 	br := bufio.NewReader(conn)
 	line, err := br.ReadString('\n')
 	if err != nil {
@@ -116,20 +172,24 @@ func handleConn(conn net.Conn, key []byte) {
 	if err := json.Unmarshal([]byte(line), &req); err != nil {
 		return
 	}
-	if !keys.Verify(key, nonce, req.HMAC) {
+	key := loadKey()
+	if !keys.Equal(keys.ClientProof(key, nonce, cb), req.HMAC) {
 		writeEnvelope(conn, proto.Envelope{
 			Code:  proto.CodeUnauthorized,
 			Error: "unauthorized: run `knit key` on a trusted machine and `knit join <key>` here",
 		})
 		return
 	}
-	_ = conn.SetReadDeadline(time.Time{})
+	_ = conn.SetDeadline(time.Time{})
+	proof := keys.ServerProof(key, nonce, cb)
 
 	switch req.Op {
 	case proto.OpInfo:
-		writeEnvelope(conn, sysinfo.Local())
+		env := sysinfo.Local()
+		env.Proof = proof
+		writeEnvelope(conn, env)
 	case proto.OpRun:
-		handleRun(conn, br, req)
+		handleRun(conn, br, req, proof)
 	default:
 		writeEnvelope(conn, proto.Envelope{Code: proto.CodeInternal, Error: "unknown op"})
 	}

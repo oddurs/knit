@@ -19,13 +19,17 @@ func serveOne(t *testing.T, key []byte) string {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { ln.Close() })
+	cfg, err := TLSConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
 	go func() {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
 				return
 			}
-			go handleConn(conn, key)
+			go Handle(conn, cfg, key)
 		}
 	}()
 	return ln.Addr().String()

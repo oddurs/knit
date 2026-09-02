@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"bufio"
-	"encoding/json"
 	"net"
 	"os"
 	"path/filepath"
@@ -12,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oddurs/knit/internal/keys"
 	"github.com/oddurs/knit/internal/proto"
 	"github.com/oddurs/knit/internal/transport"
 )
@@ -24,9 +21,10 @@ func TestServeReturnsOnStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cfg, _ := TLSConfig()
 	stopping := make(chan struct{})
 	ret := make(chan error, 1)
-	go func() { ret <- serve(ln, testKey(), stopping) }()
+	go func() { ret <- serve(ln, cfg, func() []byte { return testKey() }, stopping) }()
 
 	close(stopping)
 	_ = ln.Close()
@@ -69,39 +67,6 @@ func TestAbortAfterStdinEOFReapsRemoteProcess(t *testing.T) {
 	}
 	_ = syscall.Kill(pid, syscall.SIGKILL)
 	t.Fatal("remote process was orphaned after client abort following stdin-EOF")
-}
-
-// TestRejectsOlderProtocol: a client below the agent's protocol version gets a
-// stable `version` error naming the fix instead of a hung or garbled stream.
-func TestRejectsOlderProtocol(t *testing.T) {
-	addr := serveOne(t, testKey())
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Close()
-	r := bufio.NewReader(conn)
-	greeting, err := r.ReadString('\n')
-	if err != nil {
-		t.Fatal(err)
-	}
-	nonce := strings.Fields(greeting)[1]
-	req := proto.Request{V: 1, HMAC: keys.Sign(testKey(), nonce), Op: proto.OpRun, Cmd: []string{"true"}}
-	line, _ := json.Marshal(req)
-	if _, err := conn.Write(append(line, '\n')); err != nil {
-		t.Fatal(err)
-	}
-	reply, err := r.ReadString('\n')
-	if err != nil {
-		t.Fatal(err)
-	}
-	var env proto.Envelope
-	if err := json.Unmarshal([]byte(reply), &env); err != nil {
-		t.Fatal(err)
-	}
-	if env.OK || env.Code != proto.CodeVersion {
-		t.Fatalf("got %+v, want code %q", env, proto.CodeVersion)
-	}
 }
 
 // TestSignalDeathExitCode: a remote process that dies from a signal reports

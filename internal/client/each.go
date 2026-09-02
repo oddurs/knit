@@ -36,7 +36,7 @@ func Each(cmd []string) int {
 		fmt.Fprintln(os.Stderr, "knit:", err)
 		return 1
 	}
-	peers := probePeers(key, true)
+	peers, _ := probePeers(key, true)
 	sort.SliceStable(peers, func(i, j int) bool { return peers[i].Info.Score() < peers[j].Info.Score() })
 	hosts := make([]string, 0, 1+len(peers))
 	if len(peers) > 0 {

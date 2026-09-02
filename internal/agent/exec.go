@@ -26,7 +26,7 @@ var pumpPool = sync.Pool{New: func() any { b := make([]byte, pumpBufSize); retur
 // frames; the agent sends stdout, stderr, and a final exit frame. The command
 // runs in its own process group so the whole tree can be reaped if the client
 // goes away for any reason.
-func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
+func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request, proof string) {
 	if len(req.Cmd) == 0 {
 		writeEnvelope(conn, proto.Envelope{Code: proto.CodeEmptyCmd, Error: "empty command"})
 		return
@@ -37,7 +37,7 @@ func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
 		return
 	}
 	if req.Dir {
-		handleRunDir(conn, br, req)
+		handleRunDir(conn, br, req, proof)
 		return
 	}
 	c := command(req.Cmd)
@@ -55,7 +55,7 @@ func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
 		writeEnvelope(conn, proto.Envelope{Code: proto.CodeSpawn, Error: err.Error()})
 		return
 	}
-	writeEnvelope(conn, proto.Envelope{OK: true})
+	writeEnvelope(conn, proto.Envelope{OK: true, Proof: proof})
 	log.Printf("run: %v", req.Cmd)
 
 	fw := proto.NewFrameWriter(conn)
@@ -67,7 +67,7 @@ func handleRun(conn net.Conn, br *bufio.Reader, req proto.Request) {
 // command there, and (for --sync) mirrors changed files back by content hash
 // before the exit frame. Because the ok envelope is sent before the tree
 // arrives, spawn errors here are reported as a stderr frame plus a non-zero exit.
-func handleRunDir(conn net.Conn, br *bufio.Reader, req proto.Request) {
+func handleRunDir(conn net.Conn, br *bufio.Reader, req proto.Request, proof string) {
 	tmp, err := os.MkdirTemp("", "knit-run-*")
 	if err != nil {
 		writeEnvelope(conn, proto.Envelope{Code: proto.CodeInternal, Error: err.Error()})
@@ -75,7 +75,7 @@ func handleRunDir(conn net.Conn, br *bufio.Reader, req proto.Request) {
 	}
 	defer os.RemoveAll(tmp)
 
-	writeEnvelope(conn, proto.Envelope{OK: true}) // accept; the tree streams next
+	writeEnvelope(conn, proto.Envelope{OK: true, Proof: proof}) // accept; the tree streams next
 	fw := proto.NewFrameWriter(conn)
 
 	if err := recvTree(br, tmp); err != nil {
