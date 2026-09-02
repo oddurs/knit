@@ -56,7 +56,7 @@ func AddExplicitPeers(hostPorts []string) { extraPeers = append(extraPeers, host
 // explicit peers from --peer and KNIT_PEERS, de-duplicated by host:port. Explicit
 // peers make knit work where multicast is unavailable, e.g. a Tailscale tailnet.
 func gatherPeers(fresh bool) []discovery.Peer {
-	self := sysinfo.Local().Name
+	self := sysinfo.Name()
 	var out []discovery.Peer
 	seen := map[string]bool{}
 	add := func(p discovery.Peer) {

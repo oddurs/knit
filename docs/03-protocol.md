@@ -26,7 +26,7 @@ short-lived and a drop is meaningful (see below).
 
 ```
 server → client:   KNIT1 <32-hex-char nonce>\n
-client → server:   {"v":1,"hmac":"<hex hmac-sha256(key,nonce)>","op":"run","cmd":["zstd","-19"]}\n
+client → server:   {"v":2,"hmac":"<hex hmac-sha256(key,nonce)>","op":"run","cmd":["zstd","-19"]}\n
 server → client:   {"ok":true}\n                       (or {"ok":false,"error":"...","code":"..."}\n)
 ```
 
@@ -35,11 +35,10 @@ server → client:   {"ok":true}\n                       (or {"ok":false,"error"
   is useless because the nonce is single-use.
 - Verification is constant-time. A failed verification gets exactly one
   `{"ok":false,...}` line with code `unauthorized`, then the connection closes.
-- The client sends its protocol version in `"v"` (currently `2`). The agent
-  serves the highest run convention both sides share: a `v>=2` client gets the
-  framed client→server stream (KNIT2, below); a `v<=1` client gets the legacy raw
-  stdin stream. Unknown JSON fields are ignored in both directions, so minor
-  additions never break older peers.
+- The client sends its protocol version in `"v"` (currently `2`). An agent
+  refuses an older client with code `version` and a message naming the fix
+  (upgrade the client). Unknown JSON fields are ignored in both directions, so
+  minor additions never break older peers.
 
 Ops: `info` and `run`.
 
@@ -81,10 +80,6 @@ Framing the client direction is what lets Ctrl-C forward the *actual* signal to
 the remote process — which can trap it and exit with its own code — and makes a
 piped stdin's EOF (`type 11`) unambiguous, distinct from the client vanishing.
 
-**Legacy (`v<=1`):** the client sends raw, unframed stdin and half-closes the TCP
-write side on EOF; the agent still serves this for older clients. Signals cannot
-be distinguished on this path.
-
 - `len` is capped at 1 MiB (`maxFrame`); a larger declared length is a protocol
   violation and the receiver closes. Chunks are whatever the reader produced,
   typically ≤ the 32–256 KiB pump buffer, never split across frames of the wrong
@@ -93,8 +88,9 @@ be distinguished on this path.
   avoid a syscall per part, and reuses payload buffers from a pool.
 - **Termination:** a clean run ends with an `exit` frame carrying the process's
   code, which becomes the client's exit code. If the client's frame stream ends
-  before it sent a stdin-EOF — the connection dropped, Ctrl-C was a hard kill —
-  the agent reaps the whole process group, so nothing is orphaned. A client that
+  before the exit frame was sent — the connection dropped, the client was
+  killed, with or without a stdin-EOF first — the agent reaps the whole process
+  group (SIGINT, then SIGKILL after 2 s), so nothing is orphaned. A client that
   loses the link before the exit frame exits non-zero (code `disconnected`).
   There is no ambiguity between "exited 0" and "link died," because 0 only ever
   arrives inside an explicit exit frame.

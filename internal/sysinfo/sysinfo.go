@@ -11,12 +11,17 @@ import (
 	"github.com/oddurs/knit/internal/proto"
 )
 
+// Name is this machine's short hostname, as advertised over mDNS.
+func Name() string {
+	host, _ := os.Hostname()
+	return ShortHost(host)
+}
+
 // Local returns a populated info envelope for this machine.
 func Local() proto.Envelope {
-	host, _ := os.Hostname()
 	return proto.Envelope{
 		OK:    true,
-		Name:  ShortHost(host),
+		Name:  Name(),
 		OS:    runtime.GOOS,
 		Arch:  runtime.GOARCH,
 		CPUs:  runtime.NumCPU(),

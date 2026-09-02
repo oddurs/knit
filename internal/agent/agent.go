@@ -27,14 +27,14 @@ import (
 const authTimeout = 10 * time.Second
 
 // Serve runs the agent in the foreground until signaled. It loads (or creates)
-// the cluster key, listens on an ephemeral port, advertises over mDNS, and
-// handles connections until SIGINT/SIGTERM.
+// the cluster key, listens, advertises over mDNS, and handles connections until
+// SIGINT/SIGTERM.
 func Serve() error {
 	key, err := keys.LoadOrCreate()
 	if err != nil {
 		return err
 	}
-	ln, err := net.Listen("tcp", ":0")
+	ln, err := listen()
 	if err != nil {
 		return err
 	}
@@ -57,21 +57,39 @@ func Serve() error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	stopping := make(chan struct{})
 	go func() {
 		<-sig
-		server.Shutdown()
+		close(stopping)
 		_ = ln.Close()
 	}()
+	return serve(ln, key, stopping)
+}
 
+// listen prefers the well-known port so `--peer host` works across restarts,
+// and falls back to an ephemeral port (mDNS carries either) if it is taken.
+func listen() (net.Listener, error) {
+	if ln, err := net.Listen("tcp", ":"+strconv.Itoa(discovery.DefaultPort)); err == nil {
+		return ln, nil
+	}
+	return net.Listen("tcp", ":0")
+}
+
+// serve accepts connections until stopping is closed (and ln with it). Other
+// accept errors — typically a transient fd shortage — are logged and retried
+// after a short pause rather than spun on.
+func serve(ln net.Listener, key []byte, stopping <-chan struct{}) error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			select {
-			case <-sig:
-				return nil // clean shutdown
+			case <-stopping:
+				return nil
 			default:
-				continue
 			}
+			log.Printf("knit: accept: %v", err)
+			time.Sleep(100 * time.Millisecond)
+			continue
 		}
 		go handleConn(conn, key)
 	}

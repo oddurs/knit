@@ -15,7 +15,8 @@ knit join KEY           join the fabric that key belongs to
 
 `--dir` sends the working directory to the target and runs the command there;
 `--sync` also mirrors changed files back (implies `--dir`). `--mem` ships in v0.3;
-`--peer host:port` (global, pre-mDNS) is available now.
+`--peer host[:port]` (global, pre-mDNS) is available now; the port defaults to
+5648, which an agent binds whenever it is free.
 
 ## Nomenclature
 
@@ -45,8 +46,9 @@ address is a `lan`. True per-interface link speed arrives in v0.3.
 - **stdin/stdout are streams, not buffers.** Pipes work at any size:
   `cat 50GB.log | knit run -- zstd -19 > out.zst`.
 - **`each` prefixes, `run` doesn't.** `knit each` interleaves output from many
-  machines, so each line is prefixed `[name] `. It exits non-zero if any machine
-  did, and prints a one-line per-machine status summary to stderr at the end.
+  machines — this one included — so each line is prefixed `[name] `, and lines
+  never split mid-way. It exits non-zero if any machine did, and prints a
+  one-line per-machine status summary to stderr at the end.
 - **Errors name the fix.** `unauthorized` tells you to run `knit key` /
   `knit join`, not just that auth failed. Every error code in
   [03-protocol.md](03-protocol.md#error-codes) maps to a fix sentence.
@@ -76,7 +78,7 @@ Kept to a minimum; all optional, all overridable by flags where a flag exists.
 | Variable            | Effect                                                        |
 | ------------------- | ------------------------------------------------------------ |
 | `KNIT_HOME`       | override `~/.knit` (key, pidfile, log, peer cache)         |
-| `KNIT_PEERS`      | comma-separated `host:port` list; adds explicit peers (v0.2) |
+| `KNIT_PEERS`      | comma-separated `host[:port]` list; adds explicit peers (v0.2) |
 | `KNIT_NO_CACHE`   | if set, always browse mDNS fresh (disable the peer cache)    |
 | `KNIT_TIMEOUT_MS` | override the per-peer `info` probe budget (default 250)      |
 | `NO_COLOR`          | honored — suppresses the dim styling of the `knit →` line  |

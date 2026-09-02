@@ -13,7 +13,8 @@ import (
 
 // Up starts the agent. When detach is true it re-execs itself in the background
 // (setsid, logging to ~/.knit/agent.log, pidfile for Down); otherwise it runs
-// in the foreground.
+// in the foreground. A second `knit up -d` while the agent is running is a
+// no-op that reports the existing pid, so repeating it is always safe.
 func Up(detach bool) error {
 	if detach {
 		return daemonize()
@@ -22,6 +23,10 @@ func Up(detach bool) error {
 }
 
 func daemonize() error {
+	if pid, ok := runningPid(); ok {
+		fmt.Printf("knit already up (pid %d)\n", pid)
+		return nil
+	}
 	self, err := os.Executable()
 	if err != nil {
 		return err
@@ -54,28 +59,43 @@ func daemonize() error {
 	return nil
 }
 
-// Down stops the background agent recorded in the pidfile.
+// Down stops the background agent recorded in the pidfile. A stale pidfile
+// (agent already gone) is cleaned up and reported, not treated as a failure.
 func Down() error {
 	pidPath, err := paths.PidFile()
 	if err != nil {
 		return err
 	}
-	b, err := os.ReadFile(pidPath)
-	if err != nil {
-		return fmt.Errorf("no agent pidfile — is the agent running in the background?")
-	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
-	if err != nil {
-		return fmt.Errorf("corrupt pidfile: %w", err)
-	}
-	proc, err := os.FindProcess(pid)
-	if err == nil {
-		err = proc.Signal(syscall.SIGTERM)
-	}
+	pid, ok := runningPid()
 	_ = os.Remove(pidPath)
-	if err != nil {
+	if !ok {
+		fmt.Println("knit down — no background agent was running")
+		return nil
+	}
+	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
 		return fmt.Errorf("stopping agent: %w", err)
 	}
 	fmt.Println("knit down — this machine left the fabric")
 	return nil
+}
+
+// runningPid reads the pidfile and reports the pid only if that process is
+// still alive.
+func runningPid() (int, bool) {
+	pidPath, err := paths.PidFile()
+	if err != nil {
+		return 0, false
+	}
+	b, err := os.ReadFile(pidPath)
+	if err != nil {
+		return 0, false
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
+	if err != nil || pid <= 0 {
+		return 0, false
+	}
+	if err := syscall.Kill(pid, 0); err != nil {
+		return 0, false
+	}
+	return pid, true
 }

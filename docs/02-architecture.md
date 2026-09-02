@@ -12,7 +12,7 @@
                                     │ any IP link: Thunderbolt bridge,
                                     │ Ethernet, USB4, Wi-Fi
 ┌───────────────────────────────────┴──── machine B (agent role) ──────────────┐
-│  knit agent ─┬── mDNS register  (_knit._tcp, ephemeral port)             │
+│  knit agent ─┬── mDNS register  (_knit._tcp, port 5648 or ephemeral)     │
 │                ├── auth          (HMAC-SHA256 over a per-connection nonce)   │
 │                ├── executor      (spawn process, one goroutine per stream)   │
 │                └── framer        (length-prefixed frames, one writev each)   │
@@ -52,7 +52,9 @@ too big for knit.
 
 ## Agent
 
-- Listens on an ephemeral TCP port (`:0`) — no port configuration, no conflicts.
+- Listens on TCP port 5648 when it is free, else an ephemeral port — no port
+  configuration, no conflicts. mDNS carries whichever port was bound; a stable
+  default exists so `--peer host` keeps working across agent restarts.
 - Advertises `_knit._tcp` over mDNS with TXT metadata (`v`, `os`, `arch`,
   `cpus`). TXT is for identity and coarse filtering only; live load and free
   memory are never in TXT because they would go stale (see Discovery).
@@ -86,7 +88,7 @@ never capacity — liveness always comes from a fresh `info` probe, so a cached 
 now-busy peer is never scheduled onto blindly. Details and the tradeoff against
 "no client state at all" are in [ADR-0003](adr/0003-mdns-discovery-and-cache.md).
 
-**Explicit peers.** `--peer host:port` (and a `~/.knit/peers` allowlist) skips
+**Explicit peers.** `--peer host[:port]` (and `KNIT_PEERS`) skips
 mDNS entirely, which makes knit work across a Tailscale tailnet or any network
 where multicast is filtered ([`KN-DISC-020`](../roadmaps/milestones/m2-v0.2-real-use.md)).
 

@@ -7,11 +7,25 @@ import (
 	"strings"
 )
 
-// ParsePeer parses a "host:port" into a Peer with an empty Name (the name is
-// learned from the peer's info reply). It works across a Tailscale tailnet or
-// any network where multicast mDNS is unavailable.
+// DefaultPort is the port an agent listens on when it is free (it spells KNIT
+// on a phone keypad and is unassigned by IANA). An agent that finds it taken
+// falls back to an ephemeral port, which mDNS still advertises; only explicit
+// --peer targets need a stable port, and they get one.
+const DefaultPort = 5648
+
+// ParsePeer parses a "host" or "host:port" into a Peer with an empty Name (the
+// name is learned from the peer's info reply). It works across a Tailscale
+// tailnet or any network where multicast mDNS is unavailable. Without a port
+// the peer is assumed to be on DefaultPort.
 func ParsePeer(hostPort string) (Peer, bool) {
-	host, portStr, err := net.SplitHostPort(strings.TrimSpace(hostPort))
+	hostPort = strings.TrimSpace(hostPort)
+	if !strings.Contains(hostPort, ":") {
+		if hostPort == "" {
+			return Peer{}, false
+		}
+		return Peer{Addr: hostPort, Port: DefaultPort}, true
+	}
+	host, portStr, err := net.SplitHostPort(hostPort)
 	if err != nil || host == "" {
 		return Peer{}, false
 	}
@@ -23,12 +37,12 @@ func ParsePeer(hostPort string) (Peer, bool) {
 }
 
 // EnvPeers returns the peers listed in the KNIT_PEERS environment variable
-// (comma-separated host:port), skipping any that do not parse.
+// (comma-separated host[:port]), skipping any that do not parse.
 func EnvPeers() []Peer {
 	return ParsePeerList(strings.Split(os.Getenv("KNIT_PEERS"), ","))
 }
 
-// ParsePeerList parses a slice of "host:port" strings, dropping blanks and
+// ParsePeerList parses a slice of "host[:port]" strings, dropping blanks and
 // anything that does not parse.
 func ParsePeerList(items []string) []Peer {
 	var out []Peer

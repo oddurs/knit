@@ -31,7 +31,7 @@ Usage:
 
   knit --version           print version
 
-Add machines mDNS cannot see with --peer host:port (or KNIT_PEERS), e.g. over
+Add machines mDNS cannot see with --peer host[:port] (or KNIT_PEERS), e.g. over
 Tailscale. Each machine is a loop; together they are the fabric.
 `
 
@@ -135,7 +135,7 @@ func cmdRun(args []string) int {
 	return client.ExitUsage
 }
 
-// extractPeers pulls repeated `--peer host:port` flags from the arguments before
+// extractPeers pulls repeated `--peer host[:port]` flags from the arguments before
 // a `--` separator, returning the remaining args and the collected peers.
 func extractPeers(args []string) (rest []string, peers []string) {
 	i := 0

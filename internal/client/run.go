@@ -59,14 +59,11 @@ func Run(onName string, dirMode, sync bool, cmd []string) int {
 func runLocal(cmd []string) int {
 	c := exec.Command(cmd[0], cmd[1:]...)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := c.Run(); err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			return ee.ExitCode()
-		}
+	err := c.Run()
+	if _, exited := err.(*exec.ExitError); err != nil && !exited {
 		fmt.Fprintln(os.Stderr, "knit:", err)
-		return 1
 	}
-	return 0
+	return proto.ExitStatus(err)
 }
 
 // runRemote dials the target and streams stdio over the KNIT2 framed protocol:
@@ -91,6 +88,8 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string, dirMode, sync bo
 	fw := proto.NewFrameWriter(sess.Conn)
 
 	// --dir: stream the working directory to the target before anything else.
+	// The agent waits for FrameInEnd, so it is always sent — even for an empty
+	// or unreadable tree — and a dead link stops the walk instead of draining it.
 	if dirMode {
 		if cwd, err := os.Getwd(); err == nil {
 			pr, pw := io.Pipe()
@@ -99,14 +98,17 @@ func runRemote(c scheduler.Candidate, key []byte, cmd []string, dirMode, sync bo
 			for {
 				n, rerr := pr.Read(buf)
 				if n > 0 {
-					_ = fw.Write(proto.FrameInTar, buf[:n])
+					if fw.Write(proto.FrameInTar, buf[:n]) != nil {
+						pr.Close()
+						break
+					}
 				}
 				if rerr != nil {
 					break
 				}
 			}
-			_ = fw.Write(proto.FrameInEnd, nil)
 		}
+		_ = fw.Write(proto.FrameInEnd, nil)
 	}
 
 	// Forward stdin as frames, then an explicit EOF frame.
